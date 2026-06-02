@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+        "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+        "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<module name="Checker">
+    <property name="charset" value="UTF-8"/>
+    <property name="severity" value="warning"/>
+
+    <module name="TreeWalker">
+        <module name="MissingJavadocMethod">
+            <property name="scope" value="public"/>
+            <property name="excludeScope" value="private"/>
+            <property name="allowMissingPropertyJavadoc" value="true"/>
+            <property name="minLineCount" value="2"/>
+            <message key="javadoc.missing"
+                     value="公共方法缺少Javadoc注释: {0}，请添加方法说明、@param和@return"/>
+        </module>
+
+        <module name="MissingJavadocType">
+            <property name="scope" value="public"/>
+            <property name="skipAnnotations" value="Override"/>
+            <message key="javadoc.missing"
+                     value="类/接口缺少Javadoc注释: {0}，请添加类说明、@author和@date"/>
+        </module>
+
+        <module name="JavadocMethod">
+            <property name="accessModifiers" value="public"/>
+            <property name="allowMissingParamTags" value="false"/>
+            <property name="allowMissingReturnTag" value="false"/>
+        </module>
+
+        <module name="JavadocStyle">
+            <property name="scope" value="public"/>
+            <property name="checkEmptyJavadoc" value="true"/>
+            <message key="javadoc.empty"
+                     value="Javadoc注释不能为空，请补充具体说明"/>
+        </module>
+
+        <module name="NonEmptyAtclauseDescription">
+            <message key="non.empty.atclause"
+                     value="@param/@return/@throws标签描述不能为空"/>
+        </module>
+
+        <module name="MissingJavadocPackage"/>
+    </module>
+</module>

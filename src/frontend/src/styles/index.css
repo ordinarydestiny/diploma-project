@@ -1,0 +1,53 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  width: 100%;
+  height: 100%;
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+}
+
+:root {
+  --sidebar-width: 220px;
+  --header-height: 60px;
+  --primary-color: #409eff;
+  --bg-color: #f0f2f5;
+}
+
+.page-container {
+  padding: 20px;
+}
+
+.filter-bar {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.table-wrapper {
+  background: #fff;
+  border-radius: 4px;
+  padding: 16px;
+}
+
+.pagination-wrapper {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.el-table {
+  width: 100% !important;
+}
+
+.el-table .el-table__header th.el-table__cell .cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

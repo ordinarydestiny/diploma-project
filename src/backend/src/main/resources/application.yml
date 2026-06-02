@@ -1,0 +1,66 @@
+server:
+  port: 8080
+
+spring:
+  output:
+    ansi:
+      enabled: always
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/diploma_project?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+
+logging:
+  config: classpath:logback-spring.xml
+
+mybatis-plus:
+  mapper-locations: classpath:mapper/**/*.xml
+  type-aliases-package: com.internship.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+
+jwt:
+  secret: diploma-project-jwt-secret-key-2024-must-be-at-least-256-bits-long-for-hs256
+  expiration: 86400000
+
+file:
+  upload-dir: ../uploads
+  upload-path: ../uploads/
+  max-size: 10485760
+  template-dir: ../template-docs
+
+# 毕设系统特定配置
+graduation:
+  # PDF页数限制（答辩记录单页）
+  defense-pdf-max-pages: 1
+  # 默认补签天数
+  default-max-makeup-days: 3
+  # 成绩计算默认权重
+  default-defense-ratio: 0.40
+  default-report-ratio: 0.60
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+  group-configs:
+    - group: default
+      paths-to-match: /api/**
+
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
