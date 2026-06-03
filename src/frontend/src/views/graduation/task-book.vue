@@ -95,15 +95,16 @@
         </el-table-column>
         <el-table-column label="操作" width="150" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="handleDeliverTaskbook(row)" :disabled="row.taskbookStatus === '已下达'">
-              <el-icon><Download /></el-icon>
-              下达任务书
-            </el-button>
-            <br/>
-            <el-button type="warning" link size="small" @click="handleResetTaskbookStatus(row)">
-              <el-icon><RefreshRight /></el-icon>
-              重置状态
-            </el-button>
+            <div class="action-buttons-wrapper">
+              <el-button type="primary" link size="small" @click="handleDeliverTaskbook(row)" :disabled="row.taskbookStatus === '已下达'">
+                <el-icon><Download /></el-icon>
+                下达任务书
+              </el-button>
+              <el-button type="warning" link size="small" @click="handleResetTaskbookStatus(row)">
+                <el-icon><RefreshRight /></el-icon>
+                重置状态
+              </el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -558,6 +559,22 @@ function handleCurrentChange(val) {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
+}
+
+.action-buttons-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.action-buttons-wrapper :deep(.el-button) {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
 }
 
 @media (max-width: 768px) {
