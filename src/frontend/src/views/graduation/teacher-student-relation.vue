@@ -207,14 +207,56 @@
         <el-button type="primary" @click="handleAssignSubmit">确定分配</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="importRelationDialogVisible" title="分配关系批量导入" width="600px" destroy-on-close class="import-relation-dialog">
+      <div class="upload-container">
+        <el-upload
+          ref="uploadRef"
+          class="upload-dragger"
+          drag
+          :auto-upload="false"
+          :limit="1"
+          accept=".xls,.xlsx"
+          :on-change="handleFileChange"
+          :on-remove="handleFileRemove"
+          :on-exceed="handleExceed"
+          :file-list="importFileList"
+        >
+          <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
+          <div class="el-upload__text">
+            将文件拖到此处，或 <em>点击上传</em>
+          </div>
+        </el-upload>
+
+        <div class="upload-actions">
+          <el-button type="primary" plain @click="downloadTemplate">
+            <el-icon><Download /></el-icon>
+            下载模板 ↓
+          </el-button>
+          <span class="upload-tip">提示：仅允许导入 "xls" 或 "xlsx" 格式文件！</span>
+        </div>
+
+        <div v-if="selectedFile" class="file-info">
+          <el-icon><Document /></el-icon>
+          <span>已选择文件：<strong>{{ selectedFile.name }}</strong></span>
+          <span class="file-size">({{ formatFileSize(selectedFile.size) }})</span>
+        </div>
+      </div>
+
+      <template #footer>
+        <el-button @click="importRelationDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="handleImportSubmitConfirm" :disabled="!selectedFile">确 定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Search, Refresh, Plus, UserFilled, Upload, Download, Delete } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, UserFilled, Upload, Download, Delete, UploadFilled, Document } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import * as XLSX from 'xlsx'
 
 const route = useRoute()
 
@@ -224,6 +266,8 @@ const studentTableRef = ref(null)
 const assignFormRef = ref(null)
 const importDialogVisible = ref(false)
 const assignDialogVisible = ref(false)
+const importRelationDialogVisible = ref(false)
+const uploadRef = ref(null)
 const currentPage = ref(1)
 const pageSize = ref(10)
 
@@ -239,6 +283,8 @@ const studentLoading = ref(false)
 const studentCurrentPage = ref(1)
 const studentPageSize = ref(10)
 const selectedStudents = ref([])
+const importFileList = ref([])
+const selectedFile = ref(null)
 
 const allAvailableStudents = [
   { name: '邹成龙', studentId: '1831613446', majorName: '软件技术', className: '软件182' },
@@ -381,7 +427,151 @@ function handleAssignTeacher() {
 }
 
 function handleImportRelation() {
-  ElMessage.info('导入分配关系功能：支持Excel批量导入师生关系')
+  importRelationDialogVisible.value = true
+  selectedFile.value = null
+  importFileList.value = []
+}
+
+function handleFileChange(file, fileList) {
+  const allowedTypes = [
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  ]
+  const fileName = file.name.toLowerCase()
+  const isExcel = fileName.endsWith('.xls') || fileName.endsWith('.xlsx')
+
+  if (!isExcel) {
+    ElMessage.error('仅支持上传 .xls 或 .xlsx 格式的文件！')
+    importFileList.value = []
+    selectedFile.value = null
+    return
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    ElMessage.error('文件大小不能超过 10MB！')
+    importFileList.value = []
+    selectedFile.value = null
+    return
+  }
+
+  importFileList.value = [file]
+  selectedFile.value = file
+}
+
+function handleFileRemove(file, fileList) {
+  importFileList.value = []
+  selectedFile.value = null
+}
+
+function handleExceed(files, fileList) {
+  ElMessage.warning('只能选择1个文件，请先移除已选文件')
+}
+
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+function downloadTemplate() {
+  const headers = ['姓名', '学号', '专业', '班级', '指导教师']
+  const templateData = [
+    { '姓名': '张三', '学号': '20240001', '专业': '软件技术', '班级': '软件241', '指导教师': '廖清科' },
+    { '姓名': '李四', '学号': '20240002', '专业': '软件技术', '班级': '软件241', '指导教师': '王海洋' },
+    { '姓名': '（示例）', '学号': '（示例）', '专业': '（示例）', '班级': '（示例）', '指导教师': '（示例）' }
+  ]
+
+  const ws = XLSX.utils.json_to_sheet(templateData)
+  ws['!cols'] = [
+    { wch: 12 },
+    { wch: 16 },
+    { wch: 14 },
+    { wch: 12 },
+    { wch: 14 }
+  ]
+
+  XLSX.utils.sheet_add_aoa(ws, [headers], { origin: 'A1' })
+
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, '导入模板')
+
+  const fileName = `师生关系导入模板_${new Date().toISOString().slice(0, 10)}.xlsx`
+  XLSX.writeFile(wb, fileName)
+
+  ElMessage.success('模板下载成功！请按格式填写数据后上传')
+}
+
+function handleImportSubmitConfirm() {
+  if (!selectedFile.value) {
+    ElMessage.warning('请先选择要导入的文件')
+    return
+  }
+
+  ElMessageBox.confirm(
+    `确定要导入文件 "${selectedFile.value.name}" 吗？<br/><br/>
+     <small style="color: #909399;">注意：导入后将根据学号匹配学生，并更新指导教师信息</small>`,
+    '确认导入',
+    {
+      confirmButtonText: '确认导入',
+      cancelButtonText: '取消',
+      type: 'info',
+      dangerouslyUseHTMLString: true
+    }
+  ).then(() => {
+    loading.value = true
+
+    setTimeout(() => {
+      let successCount = 0
+      let updateCount = 0
+      let failCount = 0
+
+      const mockImportData = [
+        { studentName: '测试学生1', studentId: '20240001', majorName: '软件技术', className: '软件241', teacherName: '廖清科' },
+        { studentName: '测试学生2', studentId: '20240002', majorName: '软件技术', className: '软件241', teacherName: '王海洋' },
+        { studentName: '测试学生3', studentId: '20240003', majorName: '计算机科学', className: '计科241', teacherName: '张三' }
+      ]
+
+      mockImportData.forEach(item => {
+        const existingIndex = tableData.value.findIndex(s => s.studentId === item.studentId)
+
+        if (existingIndex > -1) {
+          tableData.value[existingIndex].teacherName = item.teacherName
+          updateCount++
+        } else {
+          const newId = Math.max(...tableData.value.map(s => s.id), 0) + 1
+          tableData.value.push({
+            id: newId,
+            studentName: item.studentName,
+            studentId: item.studentId,
+            majorName: item.majorName,
+            className: item.className,
+            teacherName: item.teacherName
+          })
+          successCount++
+        }
+      })
+
+      loading.value = false
+      importRelationDialogVisible.value = false
+      selectedFile.value = null
+      importFileList.value = []
+
+      let message = `✅ 导入完成！<br/>`
+      if (successCount > 0) message += `• 新增 ${successCount} 条数据<br/>`
+      if (updateCount > 0) message += `• 更新 ${updateCount} 条数据<br/>`
+      if (failCount > 0) message += `• 失败 ${failCount} 条数据<br/>`
+      message += `当前共 ${tableData.value.length} 条记录`
+
+      ElMessage({
+        type: 'success',
+        dangerouslyUseHTMLString: true,
+        message: message,
+        duration: 5000
+      })
+    }, 1500)
+  }).catch(() => {})
 }
 
 function handleExportRelation() {
@@ -391,25 +581,30 @@ function handleExportRelation() {
   }
 
   const headers = ['姓名', '学号', '专业', '班级', '指导教师']
-  const data = filteredData.value.map(row => [
-    row.studentName,
-    row.studentId,
-    row.majorName,
-    row.className,
-    row.teacherName || '未分配'
-  ])
+  const data = filteredData.value.map(row => ({
+    '姓名': row.studentName,
+    '学号': row.studentId,
+    '专业': row.majorName,
+    '班级': row.className,
+    '指导教师': row.teacherName || '未分配'
+  }))
 
-  let csvContent = '\uFEFF'
-  csvContent += headers.join(',') + '\n'
-  data.forEach(row => {
-    csvContent += row.join(',') + '\n'
-  })
+  const ws = XLSX.utils.json_to_sheet(data)
+  ws['!cols'] = [
+    { wch: 12 },
+    { wch: 16 },
+    { wch: 14 },
+    { wch: 12 },
+    { wch: 14 }
+  ]
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  const link = document.createElement('a')
-  link.href = URL.createObjectURL(blob)
-  link.download = `师生关系数据_${new Date().toISOString().slice(0, 10)}.csv`
-  link.click()
+  XLSX.utils.sheet_add_aoa(ws, [headers], { origin: 'A1' })
+
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, '师生关系')
+
+  const fileName = `师生关系数据_${new Date().toISOString().slice(0, 10)}.xlsx`
+  XLSX.writeFile(wb, fileName)
 
   ElMessage.success(`成功导出 ${filteredData.value.length} 条师生关系数据`)
 }
@@ -778,6 +973,92 @@ function handleCurrentChange(val) {
 
 .selected-teacher-info .el-icon {
   font-size: 18px;
+}
+
+.import-relation-dialog .upload-container {
+  padding: 10px 0;
+}
+
+.import-relation-dialog .upload-dragger {
+  width: 100%;
+}
+
+.import-relation-dialog .upload-dragger :deep(.el-upload) {
+  width: 100%;
+}
+
+.import-relation-dialog .upload-dragger :deep(.el-upload-dragger) {
+  width: 100%;
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #dcdfe6;
+  border-radius: 8px;
+  background-color: #fafafa;
+  transition: all 0.3s ease;
+}
+
+.import-relation-dialog .upload-dragger :deep(.el-upload-dragger:hover) {
+  border-color: #409eff;
+  background-color: #ecf5ff;
+}
+
+.import-relation-dialog .upload-dragger :deep(.el-icon--upload) {
+  font-size: 60px;
+  color: #c0c4cc;
+  margin-bottom: 16px;
+}
+
+.import-relation-dialog .upload-dragger :deep(.el-upload__text) {
+  font-size: 14px;
+  color: #606266;
+}
+
+.import-relation-dialog .upload-dragger :deep(.el-upload__text em) {
+  color: #409eff;
+  font-style: normal;
+  font-weight: 500;
+}
+
+.import-relation-dialog .upload-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 16px;
+  background-color: #fff9e6;
+  border: 1px solid #ffe58f;
+  border-radius: 4px;
+}
+
+.import-relation-dialog .upload-tip {
+  color: #fa8c16;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.import-relation-dialog .file-info {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background-color: #f0f9eb;
+  border: 1px solid #e1f3d8;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #67c23a;
+}
+
+.import-relation-dialog .file-info .el-icon {
+  font-size: 18px;
+}
+
+.import-relation-dialog .file-size {
+  color: #909399;
+  font-size: 12px;
+  margin-left: 4px;
 }
 
 @media (max-width: 768px) {
