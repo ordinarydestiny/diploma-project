@@ -80,8 +80,8 @@
           <el-dropdown @command="handleCommand">
             <span class="user-info">
               <el-icon><UserFilled /></el-icon>
-              <span class="username">{{ userStore.userInfo.realName || userStore.userInfo.username || '用户' }}</span>
-              <span class="role-tag">{{ userStore.roleLabel }}</span>
+              <span class="username">{{ userStore.userInfo.realName || userStore.userInfo.username || '访客' }}</span>
+              <span v-if="userStore.token && userStore.roleCode" class="role-tag">{{ userStore.roleLabel }}</span>
               <el-icon v-if="userStore.hasMultipleRoles"><ArrowDown /></el-icon>
             </span>
             <template #dropdown>

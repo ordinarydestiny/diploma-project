@@ -21,6 +21,12 @@ const routes = [
         meta: { title: '首页', icon: 'HomeFilled', requiresAuth: false }
       },
       {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('@/views/profile/index.vue'),
+        meta: { title: '个人中心', icon: 'User' }
+      },
+      {
         path: 'graduation/notice',
         name: 'GraduationNotice',
         component: () => import('@/views/graduation/notice.vue'),
