@@ -45,9 +45,9 @@ const routes = [
         meta: { title: '关联师生', icon: 'Connection', parentPath: '/graduation/batch' }
       },
       {
-        path: 'graduation/topic-manage',
-        name: 'TopicManage',
-        component: () => import('@/views/graduation/topic-manage.vue'),
+        path: 'graduation/topic-management',
+        name: 'TopicManagement',
+        component: () => import('@/views/graduation/topic-management.vue'),
         meta: { title: '题目管理', icon: 'Document' }
       },
       {

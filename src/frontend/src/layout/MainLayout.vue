@@ -182,7 +182,7 @@ const allMenuRoutes = [
     children: [
       { path: '/graduation/notice', meta: { title: '毕设通知', icon: 'Bell' } },
       { path: '/graduation/batch', meta: { title: '毕设批次', icon: 'Calendar' } },
-      { path: '/graduation/topic-manage', meta: { title: '题目管理', icon: 'Document' } },
+      { path: '/graduation/topic-management', meta: { title: '题目管理', icon: 'Document' } },
       { path: '/graduation/student-selection', meta: { title: '学生选题', icon: 'UserFilled' } },
       { path: '/graduation/task-book', meta: { title: '下达任务书', icon: 'EditPen' } },
       { path: '/graduation/defense', meta: { title: '答辩管理', icon: 'DataAnalysis' } }
