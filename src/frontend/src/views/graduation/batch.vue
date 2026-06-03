@@ -183,6 +183,9 @@
 import { ref, reactive } from 'vue'
 import { Search, Refresh, Plus, EditPen, Delete, Download, Connection } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const loading = ref(false)
 const tableRef = ref(null)
@@ -346,7 +349,7 @@ function handleRefresh() {
 }
 
 function handleRelation(row) {
-  ElMessage.info(`关联师生：批次 ${row.batchId}`)
+  router.push({ path: '/graduation/batch/relation', query: { batchId: row.batchId } })
 }
 
 function handleSubmit() {

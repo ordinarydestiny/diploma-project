@@ -39,6 +39,12 @@ const routes = [
         meta: { title: '毕设批次', icon: 'Calendar' }
       },
       {
+        path: 'graduation/batch/relation',
+        name: 'TeacherStudentRelation',
+        component: () => import('@/views/graduation/teacher-student-relation.vue'),
+        meta: { title: '关联师生', icon: 'Connection', parentPath: '/graduation/batch' }
+      },
+      {
         path: 'graduation/topic-manage',
         name: 'TopicManage',
         component: () => import('@/views/graduation/topic-manage.vue'),

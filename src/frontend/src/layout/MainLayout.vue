@@ -156,7 +156,13 @@ const isCollapse = ref(false)
 /**
  *
  */
-const activeMenu = computed(() => route.path)
+const activeMenu = computed(() => {
+  const path = route.path
+  if (route.meta?.parentPath) {
+    return route.meta.parentPath
+  }
+  return path
+})
 /**
  *
  */
