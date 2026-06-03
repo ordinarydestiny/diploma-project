@@ -127,9 +127,9 @@ const handleLogin = async () => {
     loading.value = true
     
     await userStore.login(formModel)
-    
+
     ElMessage.success('登录成功，正在跳转...')
-    window.location.href = 'https://www.baidu.com'
+    window.location.href = '/'
   } catch (error) {
     ElMessage.error('账号或密码错误，请重试')
   } finally {

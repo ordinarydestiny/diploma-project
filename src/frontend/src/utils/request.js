@@ -43,10 +43,8 @@ request.interceptors.request.use(
  */
 request.interceptors.response.use(
   (response) => {
-    /** 处理业务响应数据 */
     const res = response.data
     if (res.code !== 200) {
-      ElMessage.error(res.message || '请求失败')
       if (res.code === 401 || res.code === 4011 || res.code === 4012) {
         localStorage.removeItem('token')
         localStorage.removeItem('userInfo')
@@ -59,26 +57,6 @@ request.interceptors.response.use(
     return res
   },
   (error) => {
-    if (error.response) {
-      /** 处理HTTP错误响应 */
-      const status = error.response.status
-      if (status === 401) {
-        ElMessage.error('登录已过期，请重新登录')
-        localStorage.removeItem('token')
-        localStorage.removeItem('userInfo')
-        localStorage.removeItem('roleCode')
-        localStorage.removeItem('roles')
-        router.push('/login')
-      } else if (status === 403) {
-        ElMessage.error('没有权限访问')
-      } else if (status === 404) {
-        ElMessage.error('请求的资源不存在')
-      } else {
-        ElMessage.error(error.response.data?.message || '服务器错误')
-      }
-    } else {
-      ElMessage.error('网络连接异常')
-    }
     return Promise.reject(error)
   }
 )
