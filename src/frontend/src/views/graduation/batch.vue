@@ -18,10 +18,10 @@
           <div class="search-item">
             <label>专业</label>
             <el-select v-model="searchForm.major" placeholder="请选择" clearable style="width: 100%">
-              <el-option label="软件技术" value="software" />
-              <el-option label="计算机科学" value="cs" />
-              <el-option label="信息安全" value="security" />
-              <el-option label="大数据技术" value="bigdata" />
+              <el-option label="软件技术" value="软件技术" />
+              <el-option label="计算机科学" value="计算机科学" />
+              <el-option label="信息安全" value="信息安全" />
+              <el-option label="大数据技术" value="大数据技术" />
             </el-select>
           </div>
         </el-col>
@@ -75,7 +75,7 @@
     <div class="table-section">
       <el-table
         ref="tableRef"
-        :data="tableData"
+        :data="filteredData"
         border
         stripe
         v-loading="loading"
@@ -86,7 +86,7 @@
         <el-table-column prop="batchId" label="毕业设计批次ID" width="160" align="center" />
         <el-table-column prop="grade" label="年级" width="100" align="center" />
         <el-table-column prop="majorName" label="专业" min-width="140" show-overflow-tooltip />
-        <el-table-column prop="semester" label="学期" width="120" align="center" />
+        <el-table-column prop="semester" label="学期" width="180" align="center" show-overflow-tooltip />
         <el-table-column prop="startDate" label="开始时间" width="130" align="center" />
         <el-table-column prop="endDate" label="结束时间" width="130" align="center" />
         <el-table-column prop="defenseWeight" label="答辩分值占比" width="130" align="center">
@@ -121,7 +121,7 @@
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
-          :total="total"
+          :total="filteredData.length"
           :page-sizes="[10, 20, 50, 100]"
           layout="total, sizes, prev, pager, next, jumper"
           @size-change="handleSizeChange"
@@ -180,7 +180,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { Search, Refresh, Plus, EditPen, Delete, Download, Connection } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
@@ -194,7 +194,6 @@ const dialogVisible = ref(false)
 const dialogTitle = ref('新增批次')
 const currentPage = ref(1)
 const pageSize = ref(10)
-const total = ref(3)
 
 const searchForm = reactive({
   grade: '',
@@ -203,6 +202,8 @@ const searchForm = reactive({
 })
 
 const selectedRows = ref([])
+
+let batchIdCounter = 4
 
 const tableData = ref([
   {
@@ -213,7 +214,8 @@ const tableData = ref([
     startDate: '2025-03-01',
     endDate: '2025-06-30',
     defenseWeight: 40.0,
-    previewWeight: 10.0
+    previewWeight: 10.0,
+    studentCount: 9
   },
   {
     batchId: 'BD20230001',
@@ -223,7 +225,8 @@ const tableData = ref([
     startDate: '2024-03-01',
     endDate: '2024-06-30',
     defenseWeight: 35.0,
-    previewWeight: 15.0
+    previewWeight: 15.0,
+    studentCount: 15
   },
   {
     batchId: 'BD20220001',
@@ -233,13 +236,22 @@ const tableData = ref([
     startDate: '2023-03-01',
     endDate: '2023-06-30',
     defenseWeight: 45.0,
-    previewWeight: 10.0
+    previewWeight: 10.0,
+    studentCount: 20
   }
 ])
 
+const filteredData = computed(() => {
+  return tableData.value.filter(item => {
+    if (searchForm.grade && item.grade !== searchForm.grade) return false
+    if (searchForm.major && item.majorName !== searchForm.major) return false
+    if (searchForm.semester && !item.semester.includes(searchForm.semester)) return false
+    return true
+  })
+})
+
 const formData = reactive({
   batchId: '',
-  batchName: '',
   grade: '',
   majorName: '',
   semester: '',
@@ -259,16 +271,19 @@ const formRules = {
 
 function handleSearch() {
   loading.value = true
+  currentPage.value = 1
   setTimeout(() => {
     loading.value = false
-    ElMessage.success('搜索完成')
-  }, 500)
+    const count = filteredData.value.length
+    ElMessage.success(`搜索完成，共找到 ${count} 条数据`)
+  }, 300)
 }
 
 function handleReset() {
   searchForm.grade = ''
   searchForm.major = ''
   searchForm.semester = ''
+  currentPage.value = 1
   ElMessage.info('已重置搜索条件')
 }
 
@@ -317,58 +332,112 @@ function handleDelete() {
     ElMessage.warning('请先选择要删除的数据')
     return
   }
-  ElMessageBox.confirm(`确定要删除选中的 ${selectedRows.value.length} 条数据吗？`, '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    ElMessage.success('删除成功')
+  ElMessageBox.confirm(
+    `确定要删除选中的 ${selectedRows.value.length} 条数据吗？删除后无法恢复！`,
+    '警告',
+    {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(() => {
+    const ids = selectedRows.value.map(row => row.batchId)
+    tableData.value = tableData.value.filter(item => !ids.includes(item.batchId))
+    ElMessage.success(`成功删除 ${ids.length} 条数据`)
+    selectedRows.value = []
   }).catch(() => {})
 }
 
 function handleDeleteRow(row) {
-  ElMessageBox.confirm(`确定要删除批次 ${row.batchId} 吗？`, '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    ElMessage.success('删除成功')
+  ElMessageBox.confirm(
+    `确定要删除批次 ${row.batchId} 吗？该操作不可撤销！`,
+    '警告',
+    {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(() => {
+    const index = tableData.value.findIndex(item => item.batchId === row.batchId)
+    if (index > -1) {
+      tableData.value.splice(index, 1)
+      ElMessage.success('删除成功')
+    }
   }).catch(() => {})
 }
 
 function handleExport() {
-  ElMessage.success('导出成功')
+  if (filteredData.value.length === 0) {
+    ElMessage.warning('没有可导出的数据')
+    return
+  }
+
+  const headers = ['批次ID', '年级', '专业', '学期', '开始时间', '结束时间', '答辩占比', '预告占比']
+  const data = filteredData.value.map(row => [
+    row.batchId,
+    row.grade,
+    row.majorName,
+    row.semester,
+    row.startDate,
+    row.endDate,
+    `${row.defenseWeight}%`,
+    `${row.previewWeight}%`
+  ])
+
+  let csvContent = '\uFEFF'
+  csvContent += headers.join(',') + '\n'
+  data.forEach(row => {
+    csvContent += row.join(',') + '\n'
+  })
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = `毕设批次数据_${new Date().toISOString().slice(0, 10)}.csv`
+  link.click()
+
+  ElMessage.success(`成功导出 ${filteredData.value.length} 条数据`)
 }
 
 function handleRefresh() {
   loading.value = true
   setTimeout(() => {
     loading.value = false
-    ElMessage.success('刷新成功')
+    ElMessage.success('刷新成功，数据已更新')
   }, 500)
 }
 
 function handleRelation(row) {
-  router.push({ path: '/graduation/batch/relation', query: { batchId: row.batchId } })
+  router.push({ path: '/graduation/batch/relation', query: { batchId: row.batchId, batchInfo: JSON.stringify(row) } })
 }
 
 function handleSubmit() {
   formRef.value?.validate((valid) => {
     if (valid) {
+      if (dialogTitle.value === '新增批次') {
+        formData.batchId = `BD${new Date().getFullYear()}${String(batchIdCounter++).padStart(4, '0')}`
+        formData.studentCount = 0
+        tableData.value.unshift({ ...formData })
+        ElMessage.success(`新增批次成功！批次ID: ${formData.batchId}`)
+      } else {
+        const index = tableData.value.findIndex(item => item.batchId === formData.batchId)
+        if (index > -1) {
+          tableData.value[index] = { ...formData }
+          ElMessage.success('修改批次成功！')
+        }
+      }
       dialogVisible.value = false
-      ElMessage.success(dialogTitle.value === '新增批次' ? '新增成功' : '修改成功')
     }
   })
 }
 
 function handleSizeChange(val) {
   pageSize.value = val
-  handleSearch()
+  currentPage.value = 1
 }
 
 function handleCurrentChange(val) {
   currentPage.value = val
-  handleSearch()
 }
 </script>
 
