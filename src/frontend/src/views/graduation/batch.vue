@@ -32,15 +32,17 @@
           </div>
         </el-col>
         <el-col :xs="24" :sm="24" :md="6">
-          <div class="search-buttons">
-            <el-button type="primary" @click="handleSearch">
-              <el-icon><Search /></el-icon>
-              搜索
-            </el-button>
-            <el-button @click="handleReset">
-              <el-icon><Refresh /></el-icon>
-              重置
-            </el-button>
+          <div class="search-item search-buttons-item">
+            <div class="search-buttons-inline">
+              <el-button type="primary" @click="handleSearch">
+                <el-icon><Search /></el-icon>
+                搜索
+              </el-button>
+              <el-button @click="handleReset">
+                <el-icon><Refresh /></el-icon>
+                重置
+              </el-button>
+            </div>
           </div>
         </el-col>
       </el-row>
@@ -474,6 +476,16 @@ function handleCurrentChange(val) {
   align-items: flex-end;
   height: 100%;
   padding-top: 28px;
+}
+
+.search-buttons-item {
+  padding-top: 30px;
+}
+
+.search-buttons-inline {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 .action-section {
