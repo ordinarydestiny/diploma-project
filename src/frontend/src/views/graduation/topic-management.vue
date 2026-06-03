@@ -284,6 +284,72 @@
         <el-button type="primary" @click="handleTopicImportSubmit" :disabled="!selectedTopicFile">确 定</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="includeDialogVisible" title="纳入题目" width="900px" destroy-on-close class="include-topic-dialog">
+      <div class="filter-section">
+        <el-select v-model="includeFilterMajor" placeholder="请选择适用专业筛选" style="width: 300px" clearable @change="handleIncludeMajorChange">
+          <el-option label="全部专业" value="" />
+          <el-option label="软件技术" value="软件技术" />
+          <el-option label="计算机科学" value="计算机科学" />
+          <el-option label="大数据技术" value="大数据技术" />
+          <el-option label="人工智能" value="人工智能" />
+          <el-option label="信息安全" value="信息安全" />
+        </el-select>
+        <el-button type="success" plain>题库共 {{ allAvailableTopics.length }} 道题，已纳入 {{ tableData.length }} 道</el-button>
+      </div>
+
+      <div class="topic-table-wrapper">
+        <el-table
+          ref="includeTableRef"
+          :data="paginatedIncludeTopics"
+          border
+          stripe
+          v-loading="includeLoading"
+          @selection-change="handleIncludeSelectionChange"
+          max-height="400"
+          empty-text="暂无可纳入的题目"
+        >
+          <el-table-column type="selection" width="50" align="center" />
+          <el-table-column prop="topicName" label="题目名称" min-width="180" align="center" show-overflow-tooltip />
+          <el-table-column prop="major" label="适用专业" width="160" align="center" />
+          <el-table-column prop="source" label="题目来源" width="140" align="center" />
+          <el-table-column prop="difficulty" label="难度" width="90" align="center">
+            <template #default="{ row }">
+              <el-tag :type="getDifficultyType(row.difficulty)" size="small">{{ row.difficulty }}</el-tag>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div v-if="availableTopicsForInclude.length === 0 && !includeLoading" class="empty-tip">
+          <el-empty description="所有可用题目已全部纳入或暂无数据" :image-size="80">
+            <template #description>
+              <p style="color: #909399; font-size: 14px;">{{ includeFilterMajor ? `${includeFilterMajor} 专业的题目已全部纳入` : '题库中的可选题目已全部纳入' }}</p>
+            </template>
+          </el-empty>
+        </div>
+
+        <div class="table-footer">
+          <div class="footer-tip">默认为10条数据，全选某类 请自行调整</div>
+          <el-pagination
+            v-model:current-page="includeCurrentPage"
+            v-model:page-size="includePageSize"
+            :total="availableTopicsForInclude.length"
+            :page-sizes="[10, 20, 50]"
+            layout="total, sizes, prev, pager, next, jumper"
+            size="small"
+            @size-change="handleIncludeSizeChange"
+            @current-change="handleIncludePageChange"
+          />
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="handleIncludeSubmit" :disabled="selectedTopicsForInclude.length === 0">纳入 ({{ selectedTopicsForInclude.length }})</el-button>
+          <el-button @click="includeDialogVisible = false">取消</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -316,6 +382,13 @@ const importDialogVisible = ref(false)
 const topicUploadRef = ref(null)
 const topicImportFileList = ref([])
 const selectedTopicFile = ref(null)
+const includeDialogVisible = ref(false)
+const includeTableRef = ref(null)
+const includeFilterMajor = ref('')
+const includeLoading = ref(false)
+const includeCurrentPage = ref(1)
+const includePageSize = ref(10)
+const selectedTopicsForInclude = ref([])
 
 const addForm = reactive({
   topicName: '',
@@ -350,6 +423,29 @@ const editRules = {
 }
 
 let topicIdCounter = 132
+
+const allAvailableTopics = [
+  { topicName: '基于React的在线考试系统设计与实现', major: '软件技术', source: '教师指定题目', difficulty: '中等', description: '使用React框架开发一个功能完善的在线考试系统...' },
+  { topicName: '基于Python的自动化测试平台', major: '软件技术', source: '科研课题', difficulty: '困难', description: '利用Python+Selenium实现Web应用的自动化测试...' },
+  { topicName: '智能客服聊天机器人研发', major: '人工智能', source: '企业合作题目', difficulty: '困难', description: '基于NLP技术构建智能客服系统，支持多轮对话...' },
+  { topicName: '校园二手交易平台移动端App', major: '软件技术', source: '学生自拟题目', difficulty: '简单', description: '开发一款面向高校学生的二手物品交易应用...' },
+  { topicName: '区块链技术在供应链管理中的应用', major: '信息安全', source: '科研课题', difficulty: '困难', description: '利用区块链的不可篡改特性设计供应链溯源系统...' },
+  { topicName: '基于Spring Cloud微服务架构实践', major: '计算机科学', source: '教师指定题目', difficulty: '困难', description: '采用Spring Cloud全家桶构建分布式微服务系统...' },
+  { topicName: '智慧校园一卡通管理系统', major: '软件技术', source: '教师指定题目', difficulty: '简单', description: '整合门禁、消费、考勤等功能的校园一卡通系统...' },
+  { topicName: '大数据可视化分析平台', major: '大数据技术', source: '企业合作题目', difficulty: '中等', description: '使用ECharts+Python实现多维度数据的可视化展示...' },
+  { topicName: '基于Vue3的组件库设计与实现', major: '软件技术', source: '学生自拟题目', difficulty: '中等', description: '从零设计和开发一套类似Element Plus的UI组件库...' },
+  { topicName: '物联网环境监测系统', major: '人工智能', source: '教师指定题目', difficulty: '中等', description: '通过传感器网络实时采集环境数据并进行分析预警...' },
+  { topicName: '跨境电商平台后端服务开发', major: '计算机科学', source: '企业合作题目', difficulty: '困难', description: '为跨境电商平台设计高并发、高可用的后端服务...' },
+  { topicName: '移动端健康运动记录App', major: '软件技术', source: '学生自拟题目', difficulty: '简单', description: '支持步数统计、卡路里计算、运动轨迹记录等功能...' }
+]
+
+const availableTopicsForInclude = ref([...allAvailableTopics])
+
+const paginatedIncludeTopics = computed(() => {
+  const start = (includeCurrentPage.value - 1) * includePageSize.value
+  const end = start + includePageSize.value
+  return availableTopicsForInclude.value.slice(start, end)
+})
 
 const tableData = ref([
   {
@@ -585,7 +681,132 @@ function handleEditSubmit() {
 }
 
 function handleIncludeTopic() {
-  ElMessage.info('纳入题目功能：支持批量将题目纳入当前批次')
+  includeDialogVisible.value = true
+  includeFilterMajor.value = ''
+  selectedTopicsForInclude.value = []
+  includeCurrentPage.value = 1
+
+  includeLoading.value = true
+  setTimeout(() => {
+    const existingTopicNames = tableData.value.map(t => t.topicName)
+    availableTopicsForInclude.value = allAvailableTopics.filter(t => !existingTopicNames.includes(t.topicName))
+    includeLoading.value = false
+  }, 300)
+}
+
+function handleIncludeSelectionChange(rows) {
+  selectedTopicsForInclude.value = rows
+}
+
+function handleIncludeMajorChange(val) {
+  includeLoading.value = true
+  includeCurrentPage.value = 1
+
+  setTimeout(() => {
+    let filtered = [...allAvailableTopics]
+
+    if (val) {
+      filtered = allAvailableTopics.filter(t => t.major === val)
+    }
+
+    const existingTopicNames = tableData.value.map(t => t.topicName)
+    availableTopicsForInclude.value = filtered.filter(t => !existingTopicNames.includes(t.topicName))
+
+    includeLoading.value = false
+
+    if (val) {
+      const totalCount = allAvailableTopics.filter(t => t.major === val).length
+      const alreadyIncluded = totalCount - availableTopicsForInclude.value.length
+      if (alreadyIncluded > 0) {
+        ElMessage.info(`${val} 专业共 ${totalCount} 道题，已纳入 ${alreadyIncluded} 道，可选 ${availableTopicsForInclude.value.length} 道`)
+      } else {
+        ElMessage.success(`${val} 专业共 ${availableTopicsForInclude.value.length} 道题可纳入`)
+      }
+    } else {
+      const totalAll = allAvailableTopics.length
+      const alreadyIncludedAll = totalAll - availableTopicsForInclude.value.length
+      ElMessage.info(`全部专业共 ${totalAll} 道题，已纳入 ${alreadyIncludedAll} 道，可选 ${availableTopicsForInclude.value.length} 道`)
+    }
+
+    selectedTopicsForInclude.value = []
+  }, 300)
+}
+
+function getDifficultyType(difficulty) {
+  const map = {
+    '简单': 'success',
+    '中等': 'warning',
+    '困难': 'danger'
+  }
+  return map[difficulty] || 'info'
+}
+
+function handleIncludeSizeChange(val) {
+  includePageSize.value = val
+  includeCurrentPage.value = 1
+}
+
+function handleIncludePageChange(val) {
+  includeCurrentPage.value = val
+}
+
+function handleIncludeSubmit() {
+  if (selectedTopicsForInclude.value.length === 0) {
+    ElMessage.warning('请至少选择一道题目')
+    return
+  }
+
+  const existingTopicNames = tableData.value.map(t => t.topicName)
+  const duplicateTopics = selectedTopicsForInclude.value.filter(t => existingTopicNames.includes(t.topicName))
+  const newTopics = selectedTopicsForInclude.value.filter(t => !existingTopicNames.includes(t.topicName))
+
+  if (duplicateTopics.length > 0) {
+    ElMessageBox.confirm(
+      `检测到 ${duplicateTopics.length} 道题目已被纳入，是否只纳入剩余 ${newTopics.length} 道新题目？`,
+      '重复检测提示',
+      {
+        confirmButtonText: '确认纳入',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    ).then(() => {
+      addTopicsToTable(newTopics)
+    }).catch(() => {})
+  } else {
+    addTopicsToTable(selectedTopicsForInclude.value)
+  }
+}
+
+function addTopicsToTable(topics) {
+  let newId = Math.max(...tableData.value.map(t => t.id), 0) + 1
+  let successCount = 0
+
+  topics.forEach(topic => {
+    const newTopicId = ++topicIdCounter
+    tableData.value.push({
+      id: newId++,
+      topicId: String(newTopicId),
+      topicName: topic.topicName,
+      description: topic.description,
+      major: topic.major,
+      selectedCount: 0,
+      source: topic.source,
+      creator: '当前用户',
+      difficulty: topic.difficulty,
+      semester: searchForm.semester || '2023-2024-2'
+    })
+    successCount++
+  })
+
+  includeDialogVisible.value = false
+
+  const totalPages = Math.ceil(filteredData.value.length / pageSize.value)
+  currentPage.value = totalPages
+
+  ElMessage.success(`✅ 成功纳入 ${successCount} 道题目！当前批次共 ${tableData.value.length} 道题目`)
+
+  selectedTopicsForInclude.value = []
+  includeFilterMajor.value = ''
 }
 
 function handleRemoveTopic() {
@@ -1035,5 +1256,44 @@ function handleCurrentChange(val) {
   color: #909399;
   font-size: 12px;
   margin-left: 4px;
+}
+
+.include-topic-dialog .filter-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.include-topic-dialog .topic-table-wrapper {
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  padding: 0;
+}
+
+.include-topic-dialog .empty-tip {
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.include-topic-dialog .table-footer {
+  padding: 12px 16px;
+  background-color: #fafafa;
+  border-top: 1px solid #ebeef5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.include-topic-dialog .footer-tip {
+  color: #67c23a;
+  font-size: 13px;
+}
+
+.include-topic-dialog .dialog-footer {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 </style>
