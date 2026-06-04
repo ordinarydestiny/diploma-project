@@ -85,6 +85,12 @@ const routes = [
         name: 'FinalCheck',
         component: () => import('@/views/graduation/final-check.vue'),
         meta: { title: '最终检查', icon: 'Finished' }
+      },
+      {
+        path: 'graduation/my-graduation',
+        name: 'MyGraduation',
+        component: () => import('@/views/graduation/my-graduation.vue'),
+        meta: { title: '我的毕业设计', icon: 'UserFilled' }
       }
     ]
   },

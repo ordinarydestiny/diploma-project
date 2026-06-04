@@ -188,7 +188,8 @@ const allMenuRoutes = [
       { path: '/graduation/defense', meta: { title: '答辩管理', icon: 'DataAnalysis' } },
       { path: '/graduation/check-in', meta: { title: '签到情况', icon: 'Clock' } },
       { path: '/graduation/midterm-check', meta: { title: '中期检查', icon: 'Check' } },
-      { path: '/graduation/final-check', meta: { title: '最终检查', icon: 'Finished' } }
+      { path: '/graduation/final-check', meta: { title: '最终检查', icon: 'Finished' } },
+      { path: '/graduation/my-graduation', meta: { title: '我的毕业设计', icon: 'UserFilled' } }
     ]
   }
 ]
