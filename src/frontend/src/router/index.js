@@ -48,7 +48,7 @@ const routes = [
         path: 'graduation/topic-management',
         name: 'TopicManagement',
         component: () => import('@/views/graduation/topic-management.vue'),
-        meta: { title: '题目管理', icon: 'Document' }
+        meta: { title: '题库管理', icon: 'Document' }
       },
       {
         path: 'graduation/student-selection',
@@ -67,6 +67,24 @@ const routes = [
         name: 'Defense',
         component: () => import('@/views/graduation/defense.vue'),
         meta: { title: '答辩管理', icon: 'DataAnalysis' }
+      },
+      {
+        path: 'graduation/check-in',
+        name: 'CheckIn',
+        component: () => import('@/views/graduation/check-in.vue'),
+        meta: { title: '签到情况', icon: 'Clock' }
+      },
+      {
+        path: 'graduation/midterm-check',
+        name: 'MidtermCheck',
+        component: () => import('@/views/graduation/midterm-check.vue'),
+        meta: { title: '中期检查', icon: 'Check' }
+      },
+      {
+        path: 'graduation/final-check',
+        name: 'FinalCheck',
+        component: () => import('@/views/graduation/final-check.vue'),
+        meta: { title: '最终检查', icon: 'Finished' }
       }
     ]
   },
