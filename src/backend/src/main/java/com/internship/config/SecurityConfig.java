@@ -101,7 +101,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/internship/statistics/**").hasAnyRole("ADMIN", "DEPT_ADMIN", "TEACHER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/internship/scores/my").hasAnyRole("ADMIN", "DEPT_ADMIN", "TEACHER", "STUDENT")
                         .requestMatchers("/api/v1/internship/scores/**").hasAnyRole("ADMIN", "DEPT_ADMIN", "TEACHER")
-                        .requestMatchers("/api/v1/graduation/**").hasAnyRole("ADMIN", "DEPT_ADMIN", "TEACHER", "STUDENT")
+                        .requestMatchers("/api/v1/graduation/**").authenticated()
                         .requestMatchers("/api/v1/messages/**").hasAnyRole("ADMIN", "DEPT_ADMIN", "TEACHER", "STUDENT")
                         .anyRequest().authenticated()
                 )

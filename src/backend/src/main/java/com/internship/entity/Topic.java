@@ -16,7 +16,8 @@ public class Topic {
     private String topicType;   // 【新增】题目类型: research/engineering/thesis
     private String source;      // 【新增】题目来源: teacher/student/enterprise
     private String requirements;// 【新增】技术要求详情
-    private String references;  // 【新增】参考文献
+    @TableField("`references`")
+    private String references;  // 【新增】参考文献（references是MySQL保留字，需加反引号）
     private Integer creatorId;
     private Integer selectionCount;
     private Integer maxStudents;

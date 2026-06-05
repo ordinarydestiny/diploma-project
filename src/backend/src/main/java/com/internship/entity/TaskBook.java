@@ -16,7 +16,8 @@ public class TaskBook {
     private Integer version;
     private String requirements;     // 【新增】基本要求(JSON数组格式)
     private String techParams;       // 【新增】技术参数(JSON数组格式)
-    private String references;       // 【新增】参考资料
+    @TableField("`references`")
+    private String references;       // 【新增】参考资料（MySQL保留字，需加反引号）
     private String status;            // unissued/issued/confirmed/rejected
     private Integer issuerId;
     private LocalDateTime issuedAt;

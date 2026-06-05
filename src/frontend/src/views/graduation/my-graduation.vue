@@ -1,30 +1,34 @@
 <template>
   <div class="my-graduation-container">
-    <el-collapse v-model="activeNames" class="custom-collapse">
+    <div v-if="loading" v-loading="loading" style="min-height: 400px;"></div>
+    
+    <el-collapse v-else v-model="activeNames" class="custom-collapse">
       <!-- 1. 毕业设计批次信息 -->
       <el-collapse-item name="batch">
         <template #title>
           <div class="collapse-title">
             <span class="title-icon">📋</span>
             <span class="title-text">毕业设计批次信息</span>
-            <el-tag :type="batchInfo.status === '进行中' ? 'success' : batchInfo.status === '未开始' ? 'info' : 'info'" size="small" class="status-tag">
-              {{ batchInfo.status }}
+            <el-tag :type="batchInfo.status === 'active' ? 'success' : batchInfo.status === 'draft' ? 'info' : 'info'" size="small" class="status-tag">
+              {{ batchInfo.status === 'active' ? '进行中' : batchInfo.status === 'draft' ? '未开始' : '已结束' }}
             </el-tag>
           </div>
         </template>
 
         <div class="collapse-content">
           <el-descriptions :column="2" border>
-            <el-descriptions-item label="批次名称">{{ batchInfo.batchName }}</el-descriptions-item>
-            <el-descriptions-item label="学期">{{ batchInfo.semester }}</el-descriptions-item>
-            <el-descriptions-item label="开始时间">{{ batchInfo.startDate }}</el-descriptions-item>
-            <el-descriptions-item label="结束时间">{{ batchInfo.endDate }}</el-descriptions-item>
-            <el-descriptions-item label="当前阶段">{{ batchInfo.currentPhase }}</el-descriptions-item>
-            <el-descriptions-item label="指导老师">{{ batchInfo.teacherName }}</el-descriptions-item>
-            <el-descriptions-item label="所属专业/班级" :span="2">{{ batchInfo.major }} / {{ batchInfo.className }}</el-descriptions-item>
+            <el-descriptions-item label="批次名称">{{ batchInfo.batchName || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="学期">{{ batchInfo.semester || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="开始时间">{{ batchInfo.startDate || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="结束时间">{{ batchInfo.endDate || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="当前阶段">
+              {{ formatPhase(batchInfo.currentPhase) }}
+            </el-descriptions-item>
+            <el-descriptions-item label="指导老师">{{ batchInfo.teacherName || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="所属专业/班级" :span="2">{{ batchInfo.majorName || '-' }} / {{ batchInfo.className || '-' }}</el-descriptions-item>
           </el-descriptions>
 
-          <div class="timeline-section">
+          <div class="timeline-section" v-if="batchInfo.timeline && batchInfo.timeline.length > 0">
             <h4>📅 重要时间节点</h4>
             <el-timeline>
               <el-timeline-item
@@ -48,23 +52,23 @@
           <div class="collapse-title">
             <span class="title-icon">📝</span>
             <span class="title-text">毕业设计题目信息</span>
-            <el-tag :type="getTopicStatusType(topicInfo.status)" size="small" class="status-tag">
-              {{ topicInfo.status }}
+            <el-tag :type="getTopicStatusType(topicInfo.selectionStatus)" size="small" class="status-tag">
+              {{ formatSelectionStatus(topicInfo.selectionStatus) }}
             </el-tag>
           </div>
         </template>
 
         <div class="collapse-content">
           <el-alert
-            v-if="topicInfo.status === '待选择'"
-            title="您尚未选择毕业设计题目"
+            v-if="!topicInfo.selectionId || topicInfo.selectionStatus === 'pending'"
+            title="您尚未选择毕业设计题目或正在等待审核"
             type="warning"
             :closable="false"
             show-icon
             style="margin-bottom: 16px;"
           >
             <template #default>
-              请尽快在规定时间内选择您的毕设题目。您可以浏览题库并提交选题申请。
+              {{ !topicInfo.selectionId ? '请尽快在规定时间内选择您的毕设题目。您可以浏览题库并提交选题申请。' : '您的选题已提交，正在等待指导老师审核，请耐心等待。' }}
             </template>
           </el-alert>
 
@@ -72,32 +76,32 @@
             <el-descriptions-item label="题目名称">
               <strong style="font-size: 16px; color: #303133;">{{ topicInfo.topicName }}</strong>
             </el-descriptions-item>
-            <el-descriptions-item label="题目类型">{{ topicInfo.topicType }}</el-descriptions-item>
-            <el-descriptions-item label="题目来源">{{ topicInfo.source }}</el-descriptions-item>
-            <el-descriptions-item label="难度等级">
+            <el-descriptions-item label="题目类型">{{ formatTopicType(topicInfo.topicType) }}</el-descriptions-item>
+            <el-descriptions-item label="题目来源">{{ formatSource(topicInfo.source) }}</el-descriptions-item>
+            <el-descriptions-item label="难度等级" v-if="topicInfo.difficulty">
               <el-rate v-model="topicInfo.difficulty" disabled />
               <span style="margin-left: 8px;">{{ ['简单', '较易', '中等', '较难', '困难'][topicInfo.difficulty - 1] }}</span>
             </el-descriptions-item>
-            <el-descriptions-item label="选择时间">{{ topicInfo.selectTime }}</el-descriptions-item>
+            <el-descriptions-item label="选择时间">{{ topicInfo.selectTime || '-' }}</el-descriptions-item>
             <el-descriptions-item label="审核状态">
-              <el-tag :type="topicInfo.approved ? 'success' : 'warning'" size="small">
-                {{ topicInfo.approved ? '✅ 已通过' : '⏳ 待审核' }}
+              <el-tag :type="topicInfo.selectionStatus === 'approved' ? 'success' : topicInfo.selectionStatus === 'rejected' ? 'danger' : 'warning'" size="small">
+                {{ topicInfo.selectionStatus === 'approved' ? '✅ 已通过' : topicInfo.selectionStatus === 'rejected' ? '❌ 已驳回' : '⏳ 待审核' }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="题目描述" :span="2">
+            <el-descriptions-item label="题目描述" :span="2" v-if="topicInfo.description">
               <div class="description-content">{{ topicInfo.description }}</div>
             </el-descriptions-item>
-            <el-descriptions-item label="技术要求" :span="2">
+            <el-descriptions-item label="技术要求" :span="2" v-if="topicInfo.requirements">
               <div class="description-content">{{ topicInfo.requirements }}</div>
             </el-descriptions-item>
-            <el-descriptions-item label="参考文献" :span="2">
+            <el-descriptions-item label="参考文献" :span="2" v-if="topicInfo.references">
               <div class="reference-list">
-                <p v-for="(ref, index) in topicInfo.references" :key="index">· {{ ref }}</p>
+                <p v-for="(ref, index) in parseReferences(topicInfo.references)" :key="index">· {{ ref }}</p>
               </div>
             </el-descriptions-item>
           </el-descriptions>
 
-          <div class="action-buttons" v-if="topicInfo.status === '待选择'">
+          <div class="action-buttons" v-if="!topicInfo.selectionId || topicInfo.selectionStatus === 'rejected'">
             <el-button type="primary" @click="handleSelectTopic">
               <el-icon><Search /></el-icon>
               浏览题库并选择
@@ -113,14 +117,14 @@
             <span class="title-icon">📄</span>
             <span class="title-text">毕业设计任务书信息</span>
             <el-tag :type="getTaskBookStatusType(taskBookInfo.status)" size="small" class="status-tag">
-              {{ taskBookInfo.status }}
+              {{ formatTaskBookStatus(taskBookInfo.status) }}
             </el-tag>
           </div>
         </template>
 
         <div class="collapse-content">
           <el-alert
-            v-if="taskBookInfo.status === '未下达'"
+            v-if="!taskBookInfo.taskId || taskBookInfo.status === 'unissued'"
             title="任务书尚未下达"
             type="info"
             :closable="false"
@@ -133,41 +137,41 @@
           </el-alert>
 
           <el-descriptions :column="2" border v-if="taskBookInfo.content">
-            <el-descriptions-item label="下达时间">{{ taskBookInfo.issueTime }}</el-descriptions-item>
-            <el-descriptions-item label="完成期限">{{ taskBookInfo.deadline }}</el-descriptions-item>
+            <el-descriptions-item label="下达时间">{{ taskBookInfo.issuedAt || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="完成期限">{{ taskBookInfo.deadline || '-' }}</el-descriptions-item>
             <el-descriptions-item label="任务书状态">
-              <el-tag :type="taskBookInfo.confirmed ? 'success' : 'warning'" size="small">
-                {{ taskBookInfo.confirmed ? '✅ 已确认' : '⏳ 待确认' }}
+              <el-tag :type="taskBookInfo.status === 'confirmed' ? 'success' : taskBookInfo.status === 'rejected' ? 'danger' : 'warning'" size="small">
+                {{ taskBookInfo.status === 'confirmed' ? '✅ 已确认' : taskBookInfo.status === 'rejected' ? '❌ 已驳回' : '⏳ 待确认' }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="指导老师">{{ taskBookInfo.teacherName }}</el-descriptions-item>
+            <el-descriptions-item label="指导老师">{{ taskBookInfo.issuerName || '-' }}</el-descriptions-item>
             <el-descriptions-item label="主要任务" :span="2">
-              <div class="task-content">{{ taskBookInfo.mainTask }}</div>
+              <div class="task-content">{{ taskBookInfo.content }}</div>
             </el-descriptions-item>
-            <el-descriptions-item label="基本要求" :span="2">
+            <el-descriptions-item label="基本要求" :span="2" v-if="taskBookInfo.requirementList && taskBookInfo.requirementList.length > 0">
               <div class="requirement-list">
-                <p v-for="(req, index) in taskBookInfo.requirements" :key="index">
-                  <el-icon><Check /></el-icon> {{ req }}
+                <p v-for="(req, index) in taskBookInfo.requirementList" :key="index">
+                  <el-icon><Check /></el-icon> {{ req.text }}
                 </p>
               </div>
             </el-descriptions-item>
-            <el-descriptions-item label="技术参数" :span="2">
+            <el-descriptions-item label="技术参数" :span="2" v-if="taskBookInfo.techParamList && taskBookInfo.techParamList.length > 0">
               <div class="tech-params">
-                <el-table :data="taskBookInfo.techParams" size="small" border>
+                <el-table :data="taskBookInfo.techParamList" size="small" border>
                   <el-table-column prop="name" label="参数名称" width="200" />
                   <el-table-column prop="value" label="要求值" />
                   <el-table-column prop="note" label="备注" />
                 </el-table>
               </div>
             </el-descriptions-item>
-            <el-descriptions-item label="参考资料" :span="2">
+            <el-descriptions-item label="参考资料" :span="2" v-if="taskBookInfo.referenceList && taskBookInfo.referenceList.length > 0">
               <div class="reference-list">
-                <p v-for="(ref, index) in taskBookInfo.references" :key="index">· {{ ref }}</p>
+                <p v-for="(ref, index) in taskBookInfo.referenceList" :key="index">· {{ ref }}</p>
               </div>
             </el-descriptions-item>
           </el-descriptions>
 
-          <div class="action-buttons" v-if="taskBookInfo.status === '已下达' && !taskBookInfo.confirmed">
+          <div class="action-buttons" v-if="taskBookInfo.status === 'issued' && !taskBookInfo.confirmBy">
             <el-button type="success" @click="handleConfirmTaskBook">
               <el-icon><Check /></el-icon>
               确认接收任务书
@@ -190,19 +194,19 @@
             <span class="title-icon">✏️</span>
             <span class="title-text">毕业设计中期检查信息</span>
             <el-tag :type="getMidtermStatusType(midtermInfo.status)" size="small" class="status-tag">
-              {{ midtermInfo.status }}
+              {{ formatMidtermStatus(midtermInfo.status) }}
             </el-tag>
           </div>
         </template>
 
         <div class="collapse-content">
-          <el-descriptions :column="2" border>
+          <el-descriptions :column="2" border v-if="midtermInfo.checkId">
             <el-descriptions-item label="当前状态">
               <el-tag :type="getMidtermStatusType(midtermInfo.status)" size="large">
-                {{ midtermInfo.status }}
+                {{ formatMidtermStatus(midtermInfo.status) }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="最新进度">
+            <el-descriptions-item label="最新进度" v-if="midtermInfo.progress !== null && midtermInfo.progress !== undefined">
               <el-progress
                 :percentage="midtermInfo.progress"
                 :status="getProgressStatus(midtermInfo.progress)"
@@ -211,34 +215,47 @@
                 style="width: 200px;"
               />
             </el-descriptions-item>
-            <el-descriptions-item label="最近提交时间">{{ midtermInfo.lastSubmitTime || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="提交次数">{{ midtermInfo.submitCount }} 次</el-descriptions-item>
-            <el-descriptions-item label="老师评语" :span="2" v-if="midtermInfo.teacherComment">
+            <el-descriptions-item label="最近提交时间">{{ midtermInfo.submitTime || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="提交次数">{{ midtermInfo.versions ? midtermInfo.versions.length : 0 }} 次</el-descriptions-item>
+            <el-descriptions-item label="老师评语" :span="2" v-if="midtermInfo.reviewComment">
               <div class="teacher-comment-box">
                 <div class="comment-label">💬 指导老师意见</div>
-                <div class="comment-content">{{ midtermInfo.teacherComment }}</div>
+                <div class="comment-content">{{ midtermInfo.reviewComment }}</div>
               </div>
             </el-descriptions-item>
           </el-descriptions>
 
-          <div class="report-section" v-if="midtermInfo.reports && midtermInfo.reports.length > 0">
+          <el-alert
+            v-else
+            title="暂无中期检查记录"
+            type="info"
+            :closable="false"
+            show-icon
+            style="margin-bottom: 16px;"
+          >
+            <template #default>
+              您尚未提交中期检查报告。请根据任务书要求，在规定时间内提交。
+            </template>
+          </el-alert>
+
+          <div class="report-section" v-if="midtermInfo.versions && midtermInfo.versions.length > 0">
             <h4>📊 历次中期检查报告</h4>
             <el-timeline>
               <el-timeline-item
-                v-for="(report, index) in midtermInfo.reports"
+                v-for="(report, index) in midtermInfo.versions"
                 :key="index"
                 :timestamp="report.submitTime"
-                :type="report.status === '已通过' ? 'success' : report.status === '需修改' ? 'danger' : 'warning'"
+                :type="report.status === 'approved' ? 'success' : report.status === 'rejected' ? 'danger' : 'warning'"
                 placement="top"
               >
                 <el-card shadow="hover" class="report-card">
                   <div class="report-header">
                     <strong>第 {{ report.version }} 次提交</strong>
-                    <el-tag :type="report.status === '已通过' ? 'success' : report.status === '需修改' ? 'danger' : 'warning'" size="small">
-                      {{ report.status }}
+                    <el-tag :type="report.status === 'approved' ? 'success' : report.status === 'rejected' ? 'danger' : 'warning'" size="small">
+                      {{ formatMidtermStatus(report.status) }}
                     </el-tag>
                   </div>
-                  <div class="report-progress">
+                  <div class="report-progress" v-if="report.progress !== null && report.progress !== undefined">
                     <span>完成进度：</span>
                         <el-progress
                           :percentage="report.progress"
@@ -247,25 +264,22 @@
                           style="width: 150px; display: inline-block;"
                         />
                       </div>
-                      <div class="report-content">
-                        <p><strong>报告摘要：</strong>{{ report.summary }}</p>
-                      </div>
-                      <div class="report-comment" v-if="report.comment">
+                      <div class="report-content" v-if="report.comment">
                         <p><strong>老师反馈：</strong>{{ report.comment }}</p>
                       </div>
-                    </el-card>
-                  </el-timeline-item>
-                </el-timeline>
-              </div>
+                </el-card>
+              </el-timeline-item>
+            </el-timeline>
+          </div>
 
-              <div class="action-buttons" v-if="['未提交', '需修改'].includes(midtermInfo.status)">
-                <el-button type="primary" @click="handleSubmitMidtermReport">
-                  <el-icon><Upload /></el-icon>
-                  提交中期检查报告
-                </el-button>
-              </div>
-            </div>
-          </el-collapse-item>
+          <div class="action-buttons" v-if="!midtermInfo.checkId || ['draft', 'rejected'].includes(midtermInfo.status)">
+            <el-button type="primary" @click="handleSubmitMidtermReport">
+              <el-icon><Upload /></el-icon>
+              提交中期检查报告
+            </el-button>
+          </div>
+        </div>
+      </el-collapse-item>
 
           <!-- 5. 毕业设计最终检查信息 -->
           <el-collapse-item name="final">
@@ -274,15 +288,15 @@
                 <span class="title-icon">🎯</span>
                 <span class="title-text">毕业设计最终检查信息</span>
                 <el-tag :type="getFinalStatusType(finalInfo.status)" size="small" class="status-tag">
-                  {{ finalInfo.status }}
-                  <span v-if="finalInfo.status === '已定稿'" style="margin-left: 4px;">✨</span>
+                  {{ formatFinalStatus(finalInfo.status) }}
+                  <span v-if="finalInfo.isFinal" style="margin-left: 4px;">✨</span>
                 </el-tag>
               </div>
             </template>
 
             <div class="collapse-content">
               <el-alert
-                v-if="finalInfo.status === '已定稿'"
+                v-if="finalInfo.isFinal"
                 title="🎉 恭喜！您的毕设报告已定稿"
                 type="success"
                 :closable="false"
@@ -290,39 +304,45 @@
                 style="margin-bottom: 16px;"
               >
                 <template #default>
-                  您的毕设报告已于 <strong>{{ finalInfo.finalizeTime }}</strong> 正式定稿，该版本将用于学校存档和答辩评审。
+                  您的毕设报告已于 <strong>{{ finalInfo.finalizedAt }}</strong> 正式定稿，该版本将用于学校存档和答辩评审。
                 </template>
               </el-alert>
 
-              <el-descriptions :column="2" border>
+              <el-descriptions :column="2" border v-if="finalInfo.checkId">
                 <el-descriptions-item label="定稿状态">
                   <el-tag :type="getFinalStatusType(finalInfo.status)" size="large" effect="dark">
-                    {{ finalInfo.status }}
-                    <el-icon v-if="finalInfo.status === '已定稿'" style="margin-left: 4px;"><Finished /></el-icon>
+                    {{ formatFinalStatus(finalInfo.status) }}
+                    <el-icon v-if="finalInfo.isFinal" style="margin-left: 4px;"><Finished /></el-icon>
                   </el-tag>
                 </el-descriptions-item>
                 <el-descriptions-item label="当前版本">
                   <el-tag type="primary" effect="dark">V{{ finalInfo.version }}.0</el-tag>
-                  <span v-if="finalInfo.status === '已定稿'" style="margin-left: 8px; color: #67c23a; font-weight: bold;">(最终版)</span>
+                  <span v-if="finalInfo.isFinal" style="margin-left: 8px; color: #67c23a; font-weight: bold;">(最终版)</span>
                 </el-descriptions-item>
-                <el-descriptions-item label="定稿时间" v-if="finalInfo.finalizeTime">
-                  <span style="color: #67c23a; font-weight: bold;">{{ finalInfo.finalizeTime }}</span>
+                <el-descriptions-item label="定稿时间" v-if="finalInfo.finalizedAt">
+                  <span style="color: #67c23a; font-weight: bold;">{{ finalInfo.finalizedAt }}</span>
                 </el-descriptions-item>
-                <el-descriptions-item label="提交次数">{{ finalInfo.submitCount }} 次</el-descriptions-item>
-                <el-descriptions-item label="教师评语（存档）" :span="2" v-if="finalInfo.teacherComment">
+                <el-descriptions-item label="提交次数">{{ finalInfo.history ? finalInfo.history.length : 0 }} 次</el-descriptions-item>
+                <el-descriptions-item label="教师评语（存档）" :span="2" v-if="finalInfo.reviewComment">
                   <div class="teacher-comment-archive">
                     <div class="archive-label">⭐ 该评语将作为正式教师评语存档</div>
-                    <div class="archive-content">{{ finalInfo.teacherComment }}</div>
+                    <div class="archive-content">{{ finalInfo.reviewComment }}</div>
                   </div>
                 </el-descriptions-item>
               </el-descriptions>
 
-              <div class="report-preview" v-if="finalInfo.reportContent">
-                <h4>📄 最终版毕设报告预览</h4>
-                <div class="preview-content">
-                  <pre>{{ finalInfo.reportContent }}</pre>
-                </div>
-              </div>
+              <el-alert
+                v-else
+                title="暂无最终检查记录"
+                type="info"
+                :closable="false"
+                show-icon
+                style="margin-bottom: 16px;"
+              >
+                <template #default>
+                  您尚未提交最终毕设报告。请在中期检查通过后，根据要求提交最终版本。
+                </template>
+              </el-alert>
 
               <div class="revision-history" v-if="finalInfo.history && finalInfo.history.length > 0">
                 <h4>📜 版本修改记录</h4>
@@ -330,7 +350,7 @@
                   <el-timeline-item
                     v-for="(item, index) in finalInfo.history"
                     :key="index"
-                    :timestamp="item.time"
+                    :timestamp="item.submitTime"
                     :type="item.action === '通过并定稿' ? 'success' : item.action === '驳回' ? 'danger' : 'primary'"
                     placement="top"
                   >
@@ -342,7 +362,7 @@
                 </el-timeline>
               </div>
 
-              <div class="action-buttons" v-if="['未提交', '需修改'].includes(finalInfo.status)">
+              <div class="action-buttons" v-if="!finalInfo.checkId || ['pending', 'rejected'].includes(finalInfo.status)">
                 <el-button type="success" @click="handleSubmitFinalReport">
                   <el-icon><Upload /></el-icon>
                   提交最终毕设报告
@@ -358,14 +378,14 @@
                 <span class="title-icon">🎤</span>
                 <span class="title-text">毕业设计论文评阅信息（答辩）</span>
                 <el-tag :type="getDefenseStatusType(defenseInfo.status)" size="small" class="status-tag">
-                  {{ defenseInfo.status }}
+                  {{ formatDefenseStatus(defenseInfo.status) }}
                 </el-tag>
               </div>
             </template>
 
             <div class="collapse-content">
               <el-alert
-                v-if="defenseInfo.status === '未答辩'"
+                v-if="!defenseInfo.defenseId || defenseInfo.status === 'not_started'"
                 title="答辩安排"
                 type="info"
                 :closable="false"
@@ -373,45 +393,49 @@
                 style="margin-bottom: 16px;"
               >
                 <template #default>
-                  答辩时间：<strong>{{ defenseInfo.scheduledTime || '待通知' }}</strong><br/>
-                  答辩地点：<strong>{{ defenseInfo.location || '待通知' }}</strong><br/>
+                  答辩时间：<strong>待通知</strong><br/>
+                  答辩地点：<strong>待通知</strong><br/>
                   请提前准备好答辩PPT和相关材料。
                 </template>
               </el-alert>
 
-              <el-descriptions :column="2" border>
+              <el-descriptions :column="2" border v-if="defenseInfo.defenseId && defenseInfo.status !== 'not_started'">
                 <el-descriptions-item label="答辩状态">
                   <el-tag :type="getDefenseStatusType(defenseInfo.status)" size="large">
-                    {{ defenseInfo.status }}
+                    {{ formatDefenseStatus(defenseInfo.status) }}
                   </el-tag>
                 </el-descriptions-item>
-                <el-descriptions-item label="答辩成绩" v-if="defenseInfo.score !== null">
-                  <span style="font-size: 24px; font-weight: bold; color: #409eff;">{{ defenseInfo.score }}</span>
+                <el-descriptions-item label="答辩成绩" v-if="defenseInfo.defenseScoreNum !== null && defenseInfo.defenseScoreNum !== undefined">
+                  <span style="font-size: 24px; font-weight: bold; color: #409eff;">{{ defenseInfo.defenseScoreNum }}</span>
                   <span style="margin-left: 8px;">分</span>
                 </el-descriptions-item>
-                <el-descriptions-item label="成绩等级" v-if="defenseInfo.grade">
-                  <el-tag :type="getGradeType(defenseInfo.grade)" size="large" effect="dark">
-                    {{ defenseInfo.grade }}
+                <el-descriptions-item label="成绩等级" v-if="scoreInfo.gradeLevel">
+                  <el-tag :type="getGradeType(scoreInfo.gradeLevel)" size="large" effect="dark">
+                    {{ scoreInfo.gradeLevel }}
                   </el-tag>
                 </el-descriptions-item>
-                <el-descriptions-item label="答辩日期" v-if="defenseInfo.defenseDate">{{ defenseInfo.defenseDate }}</el-descriptions-item>
+                <el-descriptions-item label="总成绩" v-if="scoreInfo.totalScore !== null && scoreInfo.totalScore !== undefined">
+                  <span style="font-size: 24px; font-weight: bold; color: #67c23a;">{{ scoreInfo.totalScore }}</span>
+                  <span style="margin-left: 8px;">分</span>
+                </el-descriptions-item>
+                <el-descriptions-item label="答辩日期" v-if="defenseInfo.defenseDatetime">{{ defenseInfo.defenseDatetime }}</el-descriptions-item>
                 <el-descriptions-item label="答辩地点" v-if="defenseInfo.location">{{ defenseInfo.location }}</el-descriptions-item>
                 <el-descriptions-item label="答辩委员会" v-if="defenseInfo.committee">{{ defenseInfo.committee }}</el-descriptions-item>
-                <el-descriptions-item label="答辩评语" :span="2" v-if="defenseInfo.comment">
+                <el-descriptions-item label="答辩评语" :span="2" v-if="defenseInfo.reviewComment">
                   <div class="defense-comment">
                     <div class="comment-label">📝 答辩委员会评语</div>
-                    <div class="comment-text">{{ defenseInfo.comment }}</div>
+                    <div class="comment-text">{{ defenseInfo.reviewComment }}</div>
                   </div>
                 </el-descriptions-item>
               </el-descriptions>
 
-              <div class="document-section" v-if="defenseInfo.pdfFileName">
+              <div class="document-section" v-if="defenseInfo.recordFileName">
                 <h4>📋 答辩相关文档</h4>
                 <el-card shadow="hover">
                   <div class="file-item">
                     <el-icon style="color: #f56c6c; font-size: 32px;"><Document /></el-icon>
                     <div class="file-info">
-                      <div class="file-name">{{ defenseInfo.pdfFileName }}</div>
+                      <div class="file-name">{{ defenseInfo.recordFileName }}</div>
                       <div class="file-action">
                         <el-button type="primary" link size="small" @click="handleViewDefensePdf">
                           <el-icon><View /></el-icon>
@@ -451,225 +475,66 @@
     </template>
 
     <script setup>
-    import { ref } from 'vue'
+    import { ref, onMounted } from 'vue'
     import { Search, Check, Download, Upload, View, Document, Finished } from '@element-plus/icons-vue'
     import { ElMessage, ElMessageBox } from 'element-plus'
+    import request from '@/utils/request'
+    import { useUserStore } from '@/stores/user'
 
+    const userStore = useUserStore()
     const activeNames = ref(['batch'])
+    const loading = ref(false)
 
-    const batchInfo = ref({
-      status: '进行中',
-      batchName: '2025届本科毕业设计',
-      semester: '2025-2026学年第1学期',
-      startDate: '2026-03-01',
-      endDate: '2026-06-30',
-      currentPhase: '中期检查阶段',
-      teacherName: '廖清科',
-      major: '软件工程',
-      className: '软工2101班',
-      timeline: [
-        {
-          date: '2026-03-01',
-          title: '批次启动',
-          description: '毕业设计工作正式启动，开始选题',
-          type: 'primary'
-        },
-        {
-          date: '2026-03-15',
-          title: '选题截止',
-          description: '学生完成毕设题目选择',
-          type: ''
-        },
-        {
-          date: '2026-04-01',
-          title: '任务书下达',
-          description: '指导老师下达任务书',
-          type: 'success'
-        },
-        {
-          date: '2026-05-01 - 05-15',
-          title: '中期检查',
-          description: '提交中期检查报告',
-          type: 'warning'
-        },
-        {
-          date: '2026-05-20 - 05-25',
-          title: '最终检查',
-          description: '提交最终毕设报告',
-          type: 'danger'
-        },
-        {
-          date: '2026-06-01 - 06-10',
-          title: '答辩环节',
-          description: '毕业设计答辩',
-          type: 'danger'
+    // 从API获取的数据
+    const batchInfo = ref({})
+    const topicInfo = ref({})
+    const taskBookInfo = ref({})
+    const midtermInfo = ref({})
+    const finalInfo = ref({})
+    const defenseInfo = ref({})
+    const scoreInfo = ref({})
+
+    // 页面加载时获取数据
+    onMounted(async () => {
+      await fetchMyGraduationInfo()
+    })
+
+    /**
+     * 获取学生个人毕设完整信息
+     */
+    async function fetchMyGraduationInfo() {
+      loading.value = true
+      try {
+        const res = await request.get('/v1/graduation/student/my-info')
+        if (res.data) {
+          // 批次信息
+          batchInfo.value = res.data.batchInfo || {}
+          
+          // 题目信息
+          topicInfo.value = res.data.topicInfo || {}
+          
+          // 任务书信息
+          taskBookInfo.value = res.data.taskBookInfo || {}
+          
+          // 中期检查信息
+          midtermInfo.value = res.data.midtermInfo || {}
+          
+          // 最终检查信息
+          finalInfo.value = res.data.finalInfo || {}
+          
+          // 答辩信息
+          defenseInfo.value = res.data.defenseInfo || {}
+          
+          // 成绩信息
+          scoreInfo.value = res.data.scoreInfo || {}
         }
-      ]
-    })
-
-    const topicInfo = ref({
-      status: '已选题',
-      topicName: '无线宏站勘察系统设计与实现',
-      topicType: '工程设计',
-      source: '教师命题',
-      difficulty: 3,
-      selectTime: '2026-03-12 14:30:00',
-      approved: true,
-      description: '本项目旨在开发一套无线宏站勘察系统，用于辅助通信工程师进行基站选址、勘察数据采集、现场环境评估等工作。系统将集成GIS地图功能，支持现场拍照、数据录入、自动生成勘察报告等核心功能。',
-      requirements: '1. 掌握Vue.js前端框架的使用\n2. 熟悉Spring Boot后端开发\n3. 了解GIS地图集成技术\n4. 具备移动端适配能力\n5. 实现数据的导入导出功能',
-      references: [
-        '[1] 张三. 基于WebGIS的基站选址系统研究[J]. 通信技术, 2025.',
-        '[2] 李四. 移动端数据采集技术在工程勘察中的应用[D]. 北京邮电大学, 2024.',
-        '[3] 王五. Vue.js企业级应用开发实战[M]. 电子工业出版社, 2025.'
-      ]
-    })
-
-    const taskBookInfo = ref({
-      status: '已下达',
-      issueTime: '2026-04-02 09:00:00',
-      deadline: '2026-06-15',
-      confirmed: true,
-      teacherName: '廖清科',
-      mainTask: '完成无线宏站勘察系统的设计与实现，包括需求分析、系统设计、编码实现、测试部署等完整软件开发流程。系统需支持PC端和移动端访问，具备良好的用户体验和稳定性。',
-      requirements: [
-        '完成系统需求分析和技术选型方案',
-        '设计完整的数据库结构和API接口',
-        '实现用户管理、项目管理、数据采集等核心模块',
-        '集成高德/百度地图API，实现地图展示和标注功能',
-        '支持现场照片拍摄和数据录入',
-        '自动生成标准化的勘察报告（PDF格式）',
-        '编写完整的技术文档和用户手册',
-        '进行充分的测试和性能优化'
-      ],
-      techParams: [
-        { name: '前端框架', value: 'Vue 3 + Element Plus', note: '响应式设计' },
-        { name: '后端框架', value: 'Spring Boot 2.7+', note: 'RESTful API' },
-        { name: '数据库', value: 'MySQL 8.0', note: '支持千万级数据' },
-        { name: '地图服务', value: '高德地图 API', note: '免费额度内' },
-        { name: '文件存储', value: '本地/OSS', note: '图片和PDF' }
-      ],
-      references: [
-        '[1] 尤雨溪. Vue.js官方文档[EB/OL]. https://cn.vuejs.org/',
-        '[2] Spring团队. Spring Boot Reference Documentation[EB/OL].',
-        '[3] 高德开放平台. 地图JavaScript API文档[EB/OL].'
-      ]
-    })
-
-    const midtermInfo = ref({
-      status: '已通过',
-      progress: 75,
-      lastSubmitTime: '2026-05-14 16:45:00',
-      submitCount: 2,
-      teacherComment: '进度良好，系统主体功能已完成80%。建议加快数据库优化和报告生成功能的开发，确保按时完成最终版。代码质量较好，继续保持。',
-      reports: [
-        {
-          version: 1,
-          submitTime: '2026-05-02 10:30:00',
-          progress: 40,
-          status: '需修改',
-          summary: '完成了系统架构设计和部分基础功能开发，包括登录注册、项目列表展示等。',
-          comment: '1. 需求分析不够详细；2. 缺少数据库ER图；3. 进度稍慢，请加快开发速度。'
-        },
-        {
-          version: 2,
-          submitTime: '2026-05-14 16:45:00',
-          progress: 75,
-          status: '已通过',
-          summary: '根据上次反馈进行了改进，新增了数据采集模块、地图集成功能，完善了需求文档。目前整体进度符合预期。',
-          comment: '进度良好，系统主体功能已完成80%。建议加快后续开发。'
-        }
-      ]
-    })
-
-    const finalInfo = ref({
-      status: '需修改',
-      version: 2,
-      submitCount: 2,
-      finalizeTime: null,
-      teacherComment: '',
-      reportContent: `一、项目概述
-
-本项目为"无线宏站勘察系统设计与实现"，旨在为通信行业提供一套高效、便捷的基站勘察工具。
-
-二、系统架构
-
-2.1 技术架构
-采用前后端分离的B/S架构：
-- 前端：Vue 3 + Element Plus + ECharts
-- 后端：Spring Boot + MyBatis-Plus
-- 数据库：MySQL 8.0 + Redis
-- 文件存储：MinIO对象存储
-
-2.2 功能模块
-1. 用户权限管理模块
-2. 项目与任务管理模块
-3. GIS地图展示模块
-4. 数据采集与录入模块
-5. 报告自动生成模块
-6. 系统管理与统计模块
-
-三、核心功能实现
-
-3.1 地图集成
-使用高德地图JavaScript API，实现了：
-- 基站位置标注与可视化
-- 路径规划与距离测量
-- 卫星图/地形图切换
-
-3.2 数据采集
-支持多种数据类型采集：
-- 基础信息（经纬度、海拔、天线高度等）
-- 现场照片（支持多角度拍摄）
-- 环境参数（信号强度、遮挡情况等）
-
-3.3 报告生成
-基于iTextPDF库，自动生成包含：
-- 项目基本信息
-- 勘察数据汇总
-- 现场照片附件
-- 专业图表分析
-- 结论与建议
-
-四、测试结果
-
-经过充分的功能测试和性能测试：
-- 功能测试用例通过率：98%
-- 页面平均响应时间：< 1.5秒
-- 并发用户支持：100+
-- 系统可用性：99.9%
-
-五、总结与展望
-
-本项目成功实现了无线宏站勘察的全流程数字化管理，显著提升了工作效率。未来可进一步扩展AI智能分析、移动端APP等功能。
-
-（报告内容省略...）`,
-      history: [
-        {
-          version: 1,
-          action: '首次提交',
-          time: '2026-05-21 10:00:00',
-          comment: ''
-        },
-        {
-          version: 2,
-          action: '驳回',
-          time: '2026-05-23 15:30:00',
-          comment: '1. 测试部分不够详细，缺少具体的测试用例；2. 性能测试数据需要补充；3. 部分截图模糊不清。请在一周内修改完毕重新提交。'
-        }
-      ]
-    })
-
-    const defenseInfo = ref({
-      status: '未答辩',
-      score: null,
-      grade: null,
-      scheduledTime: '2026-06-05 14:00',
-      location: '教学楼A301',
-      defenseDate: null,
-      committee: null,
-      comment: null,
-      pdfFileName: null
-    })
+      } catch (error) {
+        console.error('获取毕设信息失败:', error)
+        ElMessage.error('获取毕设信息失败，请刷新页面重试')
+      } finally {
+        loading.value = false
+      }
+    }
 
     function getTopicStatusType(status) {
       const map = {
@@ -736,6 +601,95 @@
       if (progress >= 70) return ''
       if (progress >= 50) return 'warning'
       return 'exception'
+    }
+
+    // 格式化函数
+    function formatPhase(phase) {
+      const map = {
+        'preparation': '准备阶段',
+        'selection': '选题阶段',
+        'taskbook': '任务书下达阶段',
+        'midterm': '中期检查阶段',
+        'final': '最终检查阶段',
+        'defense': '答辩阶段',
+        'finished': '已全部完成'
+      }
+      return map[phase] || phase || '-'
+    }
+
+    function formatSelectionStatus(status) {
+      const map = {
+        'pending': '待审核',
+        'approved': '已通过',
+        'rejected': '已驳回',
+        'cancelled': '已取消'
+      }
+      return map[status] || status || '未选题'
+    }
+
+    function formatTopicType(type) {
+      const map = {
+        'research': '科研型',
+        'engineering': '工程型',
+        'thesis': '论文型'
+      }
+      return map[type] || type || '-'
+    }
+
+    function formatSource(source) {
+      const map = {
+        'teacher': '教师命题',
+        'student': '学生自拟',
+        'enterprise': '企业课题'
+      }
+      return map[source] || source || '-'
+    }
+
+    function parseReferences(refs) {
+      if (!refs) return []
+      if (Array.isArray(refs)) return refs
+      return refs.split('\n').filter(r => r.trim())
+    }
+
+    function formatTaskBookStatus(status) {
+      const map = {
+        'unissued': '未下达',
+        'issued': '已下达',
+        'confirmed': '已确认',
+        'rejected': '已驳回'
+      }
+      return map[status] || status || '未知'
+    }
+
+    function formatMidtermStatus(status) {
+      const map = {
+        'draft': '未提交',
+        'submitted': '已提交',
+        'pending': '待审核',
+        'approved': '已通过',
+        'rejected': '需修改'
+      }
+      return map[status] || status || '未知'
+    }
+
+    function formatFinalStatus(status) {
+      const map = {
+        'pending': '待审核',
+        'approved': '已通过',
+        'rejected': '需修改'
+      }
+      return map[status] || (status === null ? '未提交' : status || '未知')
+    }
+
+    function formatDefenseStatus(status) {
+      const map = {
+        'not_started': '未答辩',
+        'submitted': '待提交',
+        'pending': '待审核',
+        'approved': '已通过',
+        'rejected': '需修改'
+      }
+      return map[status] || status || '未知'
     }
 
     function handleSelectTopic() {
