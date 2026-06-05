@@ -19,11 +19,11 @@ export const useUserStore = defineStore('user', () => {
   })
 
   const roleLabels = {
-    ADMIN: '校级管理员',
-    DEPT_ADMIN: '院系管理员',
-    MAJOR_DIRECTOR: '专业负责人',
-    TEACHER: '指导教师',
-    STUDENT: '学生'
+    // 与数据库 users.role 字段值完全匹配
+    college_admin: '院级管理员',
+    major_admin: '专业负责人',
+    teacher: '指导教师',
+    student: '学生'
   }
 
   const roleLabel = computed(() => roleLabels[roleCode.value] || '未知角色')

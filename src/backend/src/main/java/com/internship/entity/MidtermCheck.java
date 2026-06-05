@@ -14,7 +14,8 @@ public class MidtermCheck {
     private LocalDateTime submitTime;
     private Integer version;
     private Boolean isCurrent;
-    private String status;
+    private Integer progress;          // 【新增】完成进度(0-100%)
+    private String status;             // draft/submitted/pending/approved/rejected
     private Integer reviewerId;
     private LocalDateTime reviewTime;
     private String reviewComment;

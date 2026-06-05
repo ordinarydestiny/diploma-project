@@ -18,6 +18,7 @@ public class User {
     private Integer currentRoleId;
     private Integer collegeId;
     private Integer majorId;
+    private String className;  // 【新增】班级名称
     private Boolean isActivated;
     private Boolean status;
     private String signaturePath;

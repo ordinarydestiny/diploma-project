@@ -13,11 +13,14 @@ public class SignIn {
     private Integer studentId;
     private Integer batchId;
     private LocalDate signDate;
-    private String signTime;
+    private String signTime;          // 签到具体时间 (HH:MM:SS)
+    private String location;         // 【新增】签到地点
     private String dailyReport;
     private Boolean isMakeup;
     private String makeupReason;
-    private String signStatus;
+    private String signStatus;       // normal/late/absent
+    private String signOutTime;      // 【新增】签退时间
+    private Integer durationMinutes; // 【新增】停留时长(分钟)
     private String ipAddress;
     private String userAgent;
     private LocalDateTime createdAt;

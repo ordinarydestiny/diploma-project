@@ -1,10 +1,5 @@
 <template>
   <div class="my-graduation-container">
-    <div class="page-header">
-      <h2>📚 我的毕业设计</h2>
-      <p class="subtitle">查看和管理您的毕业设计全流程信息</p>
-    </div>
-
     <el-collapse v-model="activeNames" class="custom-collapse">
       <!-- 1. 毕业设计批次信息 -->
       <el-collapse-item name="batch">
@@ -781,32 +776,12 @@
 
     <style scoped>
     .my-graduation-container {
-      padding: 24px;
-      background-color: #f0f2f5;
-      min-height: calc(100vh - 84px);
-    }
+  padding: 24px;
+  background-color: #f0f2f5;
+  min-height: calc(100vh - 84px);
+}
 
-    .page-header {
-      margin-bottom: 24px;
-      padding: 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 8px;
-      color: white;
-    }
-
-    .page-header h2 {
-      margin: 0 0 8px 0;
-      font-size: 24px;
-      font-weight: 600;
-    }
-
-    .page-header .subtitle {
-      margin: 0;
-      font-size: 14px;
-      opacity: 0.9;
-    }
-
-    .custom-collapse {
+.custom-collapse {
       background: transparent;
     }
 

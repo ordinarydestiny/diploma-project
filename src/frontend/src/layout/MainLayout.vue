@@ -195,12 +195,73 @@ const allMenuRoutes = [
 ]
 
 /**
- *
+ * 基于角色的菜单权限配置
+ * key: 角色编码 (对应数据库 users.role 字段)
+ * value: 允许访问的菜单路径列表
+ */
+const roleMenuPermissions = {
+  // 院级管理员：可看到大部分管理功能（除审核类）
+  college_admin: [
+    '/graduation/notice',
+    '/graduation/batch',
+    '/graduation/topic-management',
+    '/graduation/student-selection',
+    '/graduation/task-book',
+    '/graduation/defense',
+    '/graduation/check-in'
+  ],
+  // 专业负责人：仅基础管理和题库
+  major_admin: [
+    '/graduation/notice',
+    '/graduation/batch',
+    '/graduation/topic-management'
+  ],
+  // 指导教师：教学相关功能（题库、选题、任务书、各类检查、答辩、签到）
+  teacher: [
+    '/graduation/topic-management',
+    '/graduation/student-selection',
+    '/graduation/task-book',
+    '/graduation/midterm-check',
+    '/graduation/final-check',
+    '/graduation/defense',
+    '/graduation/check-in'
+  ],
+  // 学生：只能查看自己的毕设信息
+  student: [
+    '/graduation/my-graduation'
+  ]
+}
+
+/**
+ * 根据用户角色过滤菜单路由
+ * - 过滤掉无权限的子菜单
+ * - 如果父级菜单下没有子菜单，则隐藏整个父级菜单
  */
 const filteredRoutes = computed(() => {
-  return allMenuRoutes
+  const currentRole = userStore.roleCode || ''
+  const permissions = roleMenuPermissions[currentRole] || []
+  
+  return allMenuRoutes.map(route => {
+    if (!route.children) {
+      return route
+    }
+    
+    // 过滤有权限的子菜单
+    const filteredChildren = route.children.filter(child => 
+      permissions.includes(child.path)
+    )
+    
+    // 如果没有可见的子菜单，返回null（后续会被过滤）
+    if (filteredChildren.length === 0) {
+      return null
+    }
+    
+    return {
+      ...route,
+      children: filteredChildren
+    }
+  }).filter(route => route !== null)
 })
-
 /**
  *
  */
