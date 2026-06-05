@@ -103,6 +103,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/internship/scores/**").hasAnyRole("ADMIN", "DEPT_ADMIN", "TEACHER")
                         .requestMatchers("/api/v1/graduation/**").authenticated()
                         .requestMatchers("/api/v1/messages/**").hasAnyRole("ADMIN", "DEPT_ADMIN", "TEACHER", "STUDENT")
+                        .requestMatchers("/api/files/**").authenticated()  // 文件下载和预览接口
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

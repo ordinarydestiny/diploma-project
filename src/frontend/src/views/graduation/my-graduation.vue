@@ -708,7 +708,45 @@
     }
 
     function handleDownloadTaskBook() {
-      ElMessage.success('正在下载任务书PDF...')
+      if (!taskBookInfo.value.taskId) {
+        ElMessage.warning('暂无任务书可下载')
+        return
+      }
+      
+      ElMessage.info('正在准备下载任务书PDF...')
+      
+      // 由于任务书是动态生成的，这里我们生成一个模拟的PDF下载
+      // 实际项目中，应该从后端获取真实的任务书文件ID
+      downloadFileAsPDF('任务书_' + (topicInfo.value.topicName || '毕业设计') + '.pdf', generateTaskBookContent())
+    }
+
+    /**
+     * 生成任务书内容（用于PDF导出）
+     */
+    function generateTaskBookContent() {
+      const content = `
+毕业设计任务书
+===============================
+
+题目名称：${topicInfo.value.topicName || '未选题'}
+指导老师：${taskBookInfo.value.issuerName || '未知'}
+下达时间：${taskBookInfo.value.issuedAt || '未知'}
+完成期限：${taskBookInfo.value.deadline || '未知'}
+
+一、主要任务
+${taskBookInfo.value.content || '暂无'}
+
+二、基本要求
+${(taskBookInfo.value.requirementList || []).map((req, i) => `${i + 1}. ${req.text}`).join('\n') || '暂无'}
+
+三、技术参数
+${(taskBookInfo.value.techParamList || []).map(param => `• ${param.name}：${param.value} ${param.note ? '(' + param.note + ')' : ''}`).join('\n') || '暂无'}
+
+四、参考资料
+${(taskBookInfo.value.referenceList || []).map(ref => ref).join('\n') || '暂无'}
+      `.trim()
+      
+      return content
     }
 
     function handleSubmitMidtermReport() {
@@ -720,11 +758,56 @@
     }
 
     function handleViewDefensePdf() {
-      ElMessage.info('正在加载PDF预览...')
+      if (!defenseInfo.value.recordFileId) {
+        ElMessage.warning('暂无答辩文档可预览')
+        return
+      }
+      
+      // 打开新窗口预览PDF
+      const previewUrl = `/api/files/preview/${defenseInfo.value.recordFileId}`
+      window.open(previewUrl, '_blank', 'width=900,height=700,scrollbars=yes,resizable=yes')
     }
 
     function handleDownloadDefensePdf() {
-      ElMessage.success('正在下载答辩记录表...')
+      if (!defenseInfo.value.recordFileId) {
+        ElMessage.warning('暂无答辩文档可下载')
+        return
+      }
+      
+      // 下载文件
+      const downloadUrl = `/api/files/download/${defenseInfo.value.recordFileId}`
+      
+      // 创建隐藏的a标签触发下载
+      const link = document.createElement('a')
+      link.href = downloadUrl
+      link.download = defenseInfo.value.recordFileName || '答辩记录.pdf'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      ElMessage.success('开始下载答辩记录文档...')
+    }
+
+    /**
+     * 将文本内容下载为PDF（简化版，实际应使用后端生成）
+     */
+    function downloadFileAsPDF(fileName, content) {
+      // 创建Blob对象
+      const blob = new Blob([content], { type: 'application/pdf;charset=utf-8' })
+      
+      // 创建下载链接
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = fileName
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      // 释放URL对象
+      window.URL.revokeObjectURL(url)
+      
+      ElMessage.success(`正在下载：${fileName}`)
     }
     </script>
 

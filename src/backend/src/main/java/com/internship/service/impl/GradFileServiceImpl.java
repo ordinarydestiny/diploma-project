@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -62,6 +64,24 @@ public class GradFileServiceImpl extends ServiceImpl<FileMapper, File> implement
     @Override
     public File getFileById(Integer fileId) {
         return getById(fileId);
+    }
+
+    @Override
+    public Resource loadFileAsResource(String storagePath) throws Exception {
+        Path filePath = Paths.get(storagePath);
+        
+        // 检查文件是否存在
+        if (!Files.exists(filePath)) {
+            throw new RuntimeException("文件不存在: " + storagePath);
+        }
+        
+        // 检查是否为文件
+        if (!Files.isRegularFile(filePath)) {
+            throw new RuntimeException("路径不是有效文件: " + storagePath);
+        }
+        
+        log.info("加载文件资源: {}", storagePath);
+        return new FileSystemResource(filePath.toFile());
     }
 
     @Override
