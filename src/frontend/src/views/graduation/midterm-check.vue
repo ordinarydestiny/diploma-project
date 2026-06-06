@@ -98,7 +98,7 @@
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
-          :total="filteredData.length"
+          :total="totalRecords"
           :page-sizes="[10, 20, 50, 100]"
           layout="total, sizes, prev, pager, next, jumper"
           @size-change="handleSizeChange"
@@ -148,10 +148,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { Search, Refresh, EditPen, Check, Close, Download } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as XLSX from 'xlsx'
+import request from '@/utils/request'
 
 const loading = ref(false)
 const tableRef = ref(null)
@@ -168,56 +169,78 @@ const searchForm = reactive({
 
 const currentRecord = ref(null)
 
-const tableData = ref([
-  {
-    id: 1,
-    studentName: '张三',
-    studentId: '2133200101',
-    teacherName: '廖清科',
-    topicName: '无线宏站勘察系统设计与实现',
-    checkTime: '2026-04-15 14:30:00',
-    progress: 30,
-    status: '待审核',
-    content: '已完成系统需求分析和总体设计，正在进行数据库设计和核心模块开发。',
-    comment: ''
-  },
-  {
-    id: 2,
-    studentName: '李四',
-    studentId: '2133201102',
-    teacherName: '王海洋',
-    topicName: '电商平台后台管理系统',
-    checkTime: '2026-04-16 10:15:00',
-    progress: 60,
-    status: '已通过',
-    content: '完成了商品管理、订单管理、用户管理等核心模块的开发，正在进行测试和优化。',
-    comment: '进度符合要求，代码规范，继续保持。'
-  },
-  {
-    id: 3,
-    studentName: '王五',
-    studentId: '2133301203',
-    teacherName: '赵六',
-    topicName: '数据可视化分析平台',
-    checkTime: '2026-04-14 09:45:00',
-    progress: 40,
-    status: '需修改',
-    content: '完成了数据采集和清洗模块，正在进行可视化图表开发。',
-    comment: '1. 数据采集效率需要优化；2. 可视化图表种类不够丰富，建议增加折线图和饼图。'
-  },
-  {
-    id: 4,
-    studentName: '赵六',
-    studentId: '2133402204',
-    teacherName: '钱七',
-    topicName: '大数据技术在供应链管理中的应用',
-    checkTime: '2026-04-17 15:20:00',
-    progress: 20,
-    status: '未提交',
-    content: '',
-    comment: ''
+// 从API获取的数据
+const tableData = ref([])
+const totalRecords = ref(0)
+
+/**
+ * 从后端获取中期检查列表
+ */
+async function fetchMidtermChecks() {
+  loading.value = true
+  try {
+    const res = await request.get('/v1/teacher/midterm/all')
+    
+    if (res.data && Array.isArray(res.data)) {
+      // 转换数据格式以匹配前端表格
+      tableData.value = res.data.map((check, index) => ({
+        id: check.check_id,
+        studentName: check.student_name || '未知',
+        studentId: check.student_no || '-',
+        teacherName: check.teacher_name || '未分配',
+        topicName: check.topic_name || '未选择题目',
+        checkTime: check.submit_time ? formatDate(check.submit_time) : null,
+        progress: check.progress || 0,
+        status: formatStatus(check.status),
+        content: check.report_content || '',
+        comment: check.teacher_comment || '',
+        // 保存原始数据供详情查看使用
+        rawData: check
+      }))
+      
+      totalRecords.value = tableData.value.length
+    }
+  } catch (error) {
+    console.error('获取中期检查列表失败:', error)
+    ElMessage.error('获取中期检查列表失败，请刷新页面重试')
+  } finally {
+    loading.value = false
   }
-])
+}
+
+/**
+ * 格式化状态显示
+ */
+function formatStatus(status) {
+  const statusMap = {
+    'draft': '未提交',
+    'pending': '待审核',
+    'approved': '已通过',
+    'rejected': '需修改'
+  }
+  return statusMap[status] || status || '未知'
+}
+
+/**
+ * 格式化日期时间
+ */
+function formatDate(dateStr) {
+  if (!dateStr) return null
+  const date = new Date(dateStr)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  }).replace(/\//g, '-')
+}
+
+// 页面加载时获取数据
+onMounted(() => {
+  fetchMidtermChecks()
+})
 
 const filteredData = computed(() => {
   return tableData.value.filter(item => {
@@ -254,11 +277,12 @@ function getProgressStatus(progress) {
 function handleSearch() {
   loading.value = true
   currentPage.value = 1
-  setTimeout(() => {
-    loading.value = false
+  
+  // 重新从后端获取数据
+  fetchMidtermChecks().then(() => {
     const count = filteredData.value.length
     ElMessage.success(`搜索完成，共找到 ${count} 条记录`)
-  }, 300)
+  })
 }
 
 function handleReset() {
@@ -268,6 +292,9 @@ function handleReset() {
   searchForm.semester = '2025-2026学年第1学期(当)'
   currentPage.value = 1
   pageSize.value = 10
+  
+  // 重新获取所有数据
+  fetchMidtermChecks()
   ElMessage.info('已重置搜索条件')
 }
 

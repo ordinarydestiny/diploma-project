@@ -52,7 +52,7 @@ public class TopicController {
 
     @PostMapping
     @Operation(summary = "手动新增题目")
-    @PreAuthorize("hasAnyRole('teacher', 'college_admin')")
+    @PreAuthorize("hasAnyRole('teacher', 'college_admin', 'major_admin')")
     public Result<Topic> create(@RequestBody Topic topic) {
         topic.setCreatorId(jwtUtil.getCurrentUserId() != null ? jwtUtil.getCurrentUserId().intValue() : null);
         topic.setSelectionCount(0);
@@ -63,15 +63,15 @@ public class TopicController {
 
     @PostMapping("/import")
     @Operation(summary = "Excel批量导入题目")
-    @PreAuthorize("hasAnyRole('teacher', 'college_admin')")
+    @PreAuthorize("hasAnyRole('teacher', 'college_admin', 'major_admin')")
     public Result<String> importExcel(@RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
         // TODO: 解析Excel批量插入topics
         return Result.success("导入成功");
     }
 
     @PutMapping("/{topicId}")
-    @Operation(summary = "修改题目（仅创建人或管理员）")
-    @PreAuthorize("hasAnyRole('teacher', 'college_admin')")
+    @Operation(summary = "修改题目（教师/管理员）")
+    @PreAuthorize("hasAnyRole('teacher', 'college_admin', 'major_admin')")
     public Result<Void> update(@PathVariable Integer topicId, @RequestBody Topic topic) {
         topic.setTopicId(topicId);
         topicMapper.updateById(topic);
@@ -112,8 +112,8 @@ public class TopicController {
     }
 
     @DeleteMapping("/{topicId}")
-    @Operation(summary = "删除题目（仅创建人或管理员，且未被选用）")
-    @PreAuthorize("hasAnyRole('teacher', 'college_admin')")
+    @Operation(summary = "删除题目（教师/管理员，且未被选用）")
+    @PreAuthorize("hasAnyRole('teacher', 'college_admin', 'major_admin')")
     @LogOperation("删除题目")
     public Result<Void> delete(@PathVariable Integer topicId) {
         topicMapper.deleteById(topicId);

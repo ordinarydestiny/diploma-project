@@ -118,7 +118,7 @@
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
-          :total="filteredData.length"
+          :total="totalRecords"
           :page-sizes="[10, 20, 50, 100]"
           layout="total, sizes, prev, pager, next, jumper"
           @size-change="handleSizeChange"
@@ -214,10 +214,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { Search, Refresh, EditPen, Finished, Close, Download } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as XLSX from 'xlsx'
+import request from '@/utils/request'
 
 const loading = ref(false)
 const tableRef = ref(null)
@@ -234,114 +235,80 @@ const searchForm = reactive({
 
 const currentRecord = ref(null)
 
-const tableData = ref([
-  {
-    id: 1,
-    studentName: '张三',
-    studentId: '2133200101',
-    teacherName: '廖清科',
-    topicName: '无线宏站勘察系统设计与实现',
-    submitTime: '2026-05-15 14:30:00',
-    version: 3,
-    status: '待审核',
-    reportContent: `一、项目背景与意义
-随着移动通信技术的快速发展，5G网络建设已成为国家战略重点。无线宏站勘察作为网络规划的基础环节，其效率和准确性直接影响网络质量。传统的人工勘察方式存在效率低、误差大、数据管理困难等问题。
+// 从API获取的数据
+const tableData = ref([])
+const totalRecords = ref(0)
 
-二、系统需求分析
-2.1 功能需求
-- 勘察任务管理：支持任务的创建、分配、跟踪和完成
-- 地图集成：基于GIS的站点定位和路径规划
-- 数据采集：现场照片、测量数据、环境信息的采集
-- 报告生成：自动生成标准化的勘察报告
-
-2.2 非功能需求
-- 系统响应时间 < 3秒
-- 支持离线操作和数据同步
-- 数据安全性和隐私保护
-
-三、系统设计
-3.1 总体架构
-采用B/S架构，前后端分离设计...
-（完整报告内容省略）`,
-    teacherComment: '',
-    revisionHistory: [
-      { version: 1, action: '首次提交', time: '2026-05-01 10:00:00', type: 'primary', comment: '' },
-      { version: 2, action: '驳回修改', time: '2026-05-05 15:20:00', type: 'danger', comment: '需求分析部分不够详细，请补充具体的功能点说明' },
-      { version: 3, action: '重新提交', time: '2026-05-15 14:30:00', type: 'warning', comment: '' }
-    ]
-  },
-  {
-    id: 2,
-    studentName: '李四',
-    studentId: '2133201102',
-    teacherName: '王海洋',
-    topicName: '电商平台后台管理系统',
-    submitTime: '2026-05-10 09:15:00',
-    version: 2,
-    status: '已定稿',
-    finalizeTime: '2026-05-12 16:45:00',
-    reportContent: `一、项目概述
-本项目旨在开发一个功能完善、性能优良的电商平台后台管理系统，为电商运营提供高效的管理工具。
-
-二、技术架构
-2.1 后端技术栈
-- Spring Boot 2.7.x
-- MyBatis-Plus
-- MySQL 8.0
-- Redis缓存
-
-2.2 前端技术栈
-- Vue 3 + Element Plus
-- Axios HTTP客户端
-- ECharts数据可视化
-
-三、核心功能模块
-3.1 商品管理
-- 商品CRUD操作
-- 商品分类管理
-- 库存管理
-- 价格策略配置...
-
-（完整报告内容省略）`,
-    teacherComment: '该生完成的电商平台后台管理系统设计合理，代码规范，文档完整。系统实现了商品管理、订单处理、用户管理等核心功能，具有良好的可扩展性。建议在后续工作中进一步优化系统性能，加强安全性测试。总体评价：优秀。',
-    revisionHistory: [
-      { version: 1, action: '首次提交', time: '2026-05-03 11:30:00', type: 'primary', comment: '' },
-      { version: 2, action: '通过并定稿', time: '2026-05-12 16:45:00', type: 'success', comment: '该生完成的电商平台后台管理系统设计合理...' }
-    ]
-  },
-  {
-    id: 3,
-    studentName: '王五',
-    studentId: '2133301203',
-    teacherName: '赵六',
-    topicName: '数据可视化分析平台',
-    submitTime: '2026-05-14 11:20:00',
-    version: 2,
-    status: '需修改',
-    reportContent: `一、项目简介
-数据可视化分析平台是一个将复杂数据转化为直观图表的工具平台...
-
-（报告内容不完整，待修改）`,
-    teacherComment: '',
-    revisionHistory: [
-      { version: 1, action: '首次提交', time: '2026-05-08 14:00:00', type: 'primary', comment: '' },
-      { version: 2, action: '驳回修改', time: '2026-05-14 17:30:00', type: 'danger', comment: '1. 可视化图表类型不够丰富；2. 缺少数据分析算法的实现；3. 用户交互体验需要优化。请在一周内修改完毕重新提交。' }
-    ]
-  },
-  {
-    id: 4,
-    studentName: '赵六',
-    studentId: '2133402204',
-    teacherName: '钱七',
-    topicName: '大数据技术在供应链管理中的应用',
-    submitTime: '',
-    version: 0,
-    status: '未提交',
-    reportContent: '',
-    teacherComment: '',
-    revisionHistory: []
+/**
+ * 从后端获取最终检查列表
+ */
+async function fetchFinalChecks() {
+  loading.value = true
+  try {
+    const res = await request.get('/v1/teacher/final/all')
+    
+    if (res.data && Array.isArray(res.data)) {
+      // 转换数据格式以匹配前端表格
+      tableData.value = res.data.map((check, index) => ({
+        id: check.check_id,
+        studentName: check.student_name || '未知',
+        studentId: check.student_no || '-',
+        teacherName: check.teacher_name || '未分配',
+        topicName: check.topic_name || '未选择题目',
+        submitTime: check.submit_time ? formatDate(check.submit_time) : null,
+        version: check.version || 1,
+        status: formatStatus(check.status),
+        reportContent: check.report_content || '',
+        teacherComment: check.teacher_comment || '',
+        finalizeTime: check.finalize_time ? formatDate(check.finalize_time) : null,
+        isFinal: check.is_final === 1,
+        // 保存原始数据供详情查看使用
+        rawData: check
+      }))
+      
+      totalRecords.value = tableData.value.length
+    }
+  } catch (error) {
+    console.error('获取最终检查列表失败:', error)
+    ElMessage.error('获取最终检查列表失败，请刷新页面重试')
+  } finally {
+    loading.value = false
   }
-])
+}
+
+/**
+ * 格式化状态显示
+ */
+function formatStatus(status) {
+  const statusMap = {
+    'draft': '未提交',
+    'pending': '待审核',
+    'approved': '已定稿',
+    'rejected': '需修改'
+  }
+  return statusMap[status] || status || '未知'
+}
+
+/**
+ * 格式化日期时间
+ */
+function formatDate(dateStr) {
+  if (!dateStr) return null
+  const date = new Date(dateStr)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  }).replace(/\//g, '-')
+}
+
+// 页面加载时获取数据
+onMounted(() => {
+  fetchFinalChecks()
+})
 
 const filteredData = computed(() => {
   return tableData.value.filter(item => {
@@ -371,11 +338,12 @@ function getStatusType(status) {
 function handleSearch() {
   loading.value = true
   currentPage.value = 1
-  setTimeout(() => {
-    loading.value = false
+  
+  // 重新从后端获取数据
+  fetchFinalChecks().then(() => {
     const count = filteredData.value.length
     ElMessage.success(`搜索完成，共找到 ${count} 条记录`)
-  }, 300)
+  })
 }
 
 function handleReset() {
@@ -385,6 +353,9 @@ function handleReset() {
   searchForm.semester = '2025-2026学年第1学期(当)'
   currentPage.value = 1
   pageSize.value = 10
+  
+  // 重新获取所有数据
+  fetchFinalChecks()
   ElMessage.info('已重置搜索条件')
 }
 

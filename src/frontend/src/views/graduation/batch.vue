@@ -123,7 +123,7 @@
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
-          :total="filteredData.length"
+          :total="totalRecords"
           :page-sizes="[10, 20, 50, 100]"
           layout="total, sizes, prev, pager, next, jumper"
           @size-change="handleSizeChange"
@@ -182,10 +182,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { Search, Refresh, Plus, EditPen, Delete, Download, Connection } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
+import request from '@/utils/request'
 
 const router = useRouter()
 
@@ -204,44 +205,92 @@ const searchForm = reactive({
 })
 
 const selectedRows = ref([])
+const currentRecord = ref(null)
 
-let batchIdCounter = 4
+// 从API获取的数据
+const tableData = ref([])
+const totalRecords = ref(0)
 
-const tableData = ref([
-  {
-    batchId: 'BD20240001',
-    grade: '2024',
-    majorName: '软件技术',
-    semester: '2024-2025学年第二学期',
-    startDate: '2025-03-01',
-    endDate: '2025-06-30',
-    defenseWeight: 40.0,
-    previewWeight: 10.0,
-    studentCount: 9
-  },
-  {
-    batchId: 'BD20230001',
-    grade: '2023',
-    majorName: '计算机科学',
-    semester: '2023-2024学年第二学期',
-    startDate: '2024-03-01',
-    endDate: '2024-06-30',
-    defenseWeight: 35.0,
-    previewWeight: 15.0,
-    studentCount: 15
-  },
-  {
-    batchId: 'BD20220001',
-    grade: '2022',
-    majorName: '大数据技术',
-    semester: '2022-2023学年第二学期',
-    startDate: '2023-03-01',
-    endDate: '2023-06-30',
-    defenseWeight: 45.0,
-    previewWeight: 10.0,
-    studentCount: 20
+// 页面加载时获取数据
+onMounted(() => {
+  fetchBatches()
+})
+
+/**
+ * 从后端获取批次列表
+ */
+async function fetchBatches() {
+  loading.value = true
+  try {
+    const res = await request.get('/batches', {
+      params: {
+        page: currentPage.value,
+        size: pageSize.value
+      }
+    })
+    
+    if (res.data && res.data.records) {
+      // 转换数据格式以匹配前端表格
+      tableData.value = res.data.records.map((batch) => ({
+        batchId: batch.batch_id || batch.batchName,
+        grade: batch.grade || extractGradeFromSemester(batch.batch_name),
+        majorName: batch.major_name || getMajorNameById(batch.major_id),
+        semester: batch.batch_name,
+        startDate: batch.start_date ? formatDate(batch.start_date) : null,
+        endDate: batch.end_date ? formatDate(batch.end_date) : null,
+        defenseWeight: batch.defense_weight || 40,
+        previewWeight: batch.preview_weight || 10,
+        studentCount: batch.student_count || 0,
+        status: batch.status || 'active',
+        // 保存原始数据供详情查看使用
+        rawData: batch
+      }))
+      
+      totalRecords.value = res.data.total || 0
+    }
+  } catch (error) {
+    console.error('获取批次列表失败:', error)
+    ElMessage.error('获取批次列表失败，请刷新页面重试')
+  } finally {
+    loading.value = false
   }
-])
+}
+
+/**
+ * 从学期名称中提取年级
+ */
+function extractGradeFromSemester(semester) {
+  if (!semester) return ''
+  const match = semester.match(/(\d{4})/)
+  return match ? match[1].slice(0, 4) : ''
+}
+
+/**
+ * 根据专业ID获取专业名称（简化版）
+ */
+function getMajorNameById(majorId) {
+  const majorMap = {
+    1: '软件技术',
+    2: '计算机科学',
+    3: '信息安全',
+    4: '大数据技术',
+    5: '人工智能'
+  }
+  return majorMap[majorId] || '未知专业'
+}
+
+/**
+ * 格式化日期
+ */
+function formatDate(dateStr) {
+  if (!dateStr) return null
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).replace(/\//g, '-')
+}
 
 const filteredData = computed(() => {
   return tableData.value.filter(item => {
@@ -274,11 +323,12 @@ const formRules = {
 function handleSearch() {
   loading.value = true
   currentPage.value = 1
-  setTimeout(() => {
-    loading.value = false
+  
+  // 重新从后端获取数据（带筛选条件）
+  fetchBatches().then(() => {
     const count = filteredData.value.length
-    ElMessage.success(`搜索完成，共找到 ${count} 条数据`)
-  }, 300)
+    ElMessage.success(`搜索完成，共找到 ${count} 条记录`)
+  })
 }
 
 function handleReset() {
@@ -286,6 +336,10 @@ function handleReset() {
   searchForm.major = ''
   searchForm.semester = ''
   currentPage.value = 1
+  pageSize.value = 10
+  
+  // 重新获取所有数据
+  fetchBatches()
   ElMessage.info('已重置搜索条件')
 }
 
@@ -319,7 +373,18 @@ function handleEdit() {
   }
   const row = selectedRows.value[0]
   dialogTitle.value = '修改批次'
-  Object.assign(formData, { ...row })
+  currentRecord.value = row
+  
+  // 从原始数据或当前数据填充表单
+  formData.batchId = row.batchId
+  formData.grade = row.grade || ''
+  formData.majorName = row.majorName || ''
+  formData.semester = row.semester || ''
+  formData.startDate = row.startDate || ''
+  formData.endDate = row.endDate || ''
+  formData.defenseWeight = row.defenseWeight || 40
+  formData.previewWeight = row.previewWeight || 10
+  
   dialogVisible.value = true
 }
 
@@ -329,41 +394,65 @@ function handleEditRow(row) {
   dialogVisible.value = true
 }
 
-function handleDelete() {
+async function handleDelete() {
   if (selectedRows.value.length === 0) {
     ElMessage.warning('请先选择要删除的数据')
     return
   }
   ElMessageBox.confirm(
-    `确定要删除选中的 ${selectedRows.value.length} 条数据吗？删除后无法恢复！`,
+    `确定要删除选中的 ${selectedRows.value.length} 条数据吗？<br/><br/>
+     <small style="color: #f56c6c;">⚠️ 此操作将从数据库中永久删除，无法恢复！</small>`,
     '警告',
     {
       confirmButtonText: '确定删除',
       cancelButtonText: '取消',
-      type: 'warning'
+      type: 'warning',
+      dangerouslyUseHTMLString: true
     }
-  ).then(() => {
-    const ids = selectedRows.value.map(row => row.batchId)
-    tableData.value = tableData.value.filter(item => !ids.includes(item.batchId))
-    ElMessage.success(`成功删除 ${ids.length} 条数据`)
-    selectedRows.value = []
+  ).then(async () => {
+    try {
+      // 调用后端API逐个删除批次
+      const deletePromises = selectedRows.value.map(row => 
+        request.delete(`/batches/${row.rawData?.batch_id || row.batchId}`)
+      )
+      
+      await Promise.all(deletePromises)
+      
+      // 删除成功后重新获取数据
+      await fetchBatches()
+      
+      ElMessage.success(`✅ 成功删除 ${selectedRows.value.length} 条批次数据！数据已从数据库移除`)
+      selectedRows.value = []
+    } catch (error) {
+      console.error('删除失败:', error)
+      ElMessage.error('❌ 删除失败，请重试')
+    }
   }).catch(() => {})
 }
 
-function handleDeleteRow(row) {
+async function handleDeleteRow(row) {
   ElMessageBox.confirm(
-    `确定要删除批次 ${row.batchId} 吗？该操作不可撤销！`,
+    `确定要删除批次 ${row.batchId} 吗？<br/><br/>
+     <small style="color: #f56c6c;">⚠️ 该操作不可撤销！</small>`,
     '警告',
     {
       confirmButtonText: '确定删除',
       cancelButtonText: '取消',
-      type: 'warning'
+      type: 'warning',
+      dangerouslyUseHTMLString: true
     }
-  ).then(() => {
-    const index = tableData.value.findIndex(item => item.batchId === row.batchId)
-    if (index > -1) {
-      tableData.value.splice(index, 1)
-      ElMessage.success('删除成功')
+  ).then(async () => {
+    try {
+      // 调用后端API删除批次
+      await request.delete(`/batches/${row.rawData?.batch_id || row.batchId}`)
+      
+      // 删除成功后重新获取数据
+      await fetchBatches()
+      
+      ElMessage.success('✅ 删除成功！数据已从数据库移除')
+    } catch (error) {
+      console.error('删除失败:', error)
+      ElMessage.error('❌ 删除失败，请重试')
     }
   }).catch(() => {})
 }
@@ -413,22 +502,56 @@ function handleRelation(row) {
   router.push({ path: '/graduation/batch/relation', query: { batchId: row.batchId, batchInfo: JSON.stringify(row) } })
 }
 
-function handleSubmit() {
-  formRef.value?.validate((valid) => {
+async function handleSubmit() {
+  formRef.value?.validate(async (valid) => {
     if (valid) {
-      if (dialogTitle.value === '新增批次') {
-        formData.batchId = `BD${new Date().getFullYear()}${String(batchIdCounter++).padStart(4, '0')}`
-        formData.studentCount = 0
-        tableData.value.unshift({ ...formData })
-        ElMessage.success(`新增批次成功！批次ID: ${formData.batchId}`)
-      } else {
-        const index = tableData.value.findIndex(item => item.batchId === formData.batchId)
-        if (index > -1) {
-          tableData.value[index] = { ...formData }
-          ElMessage.success('修改批次成功！')
+      try {
+        if (dialogTitle.value === '新增批次') {
+          // 调用后端API新增批次
+          const batchData = {
+            batchName: formData.semester,
+            grade: formData.grade,
+            majorName: formData.majorName,
+            semester: formData.semester,
+            startDate: formData.startDate,
+            endDate: formData.endDate,
+            defenseWeight: formData.defenseWeight,
+            previewWeight: formData.previewWeight
+          }
+          
+          await request.post('/batches', batchData)
+          
+          // 新增成功后重新获取数据
+          await fetchBatches()
+          
+          dialogVisible.value = false
+          ElMessage.success('✅ 新增批次成功！数据已同步到数据库')
+        } else {
+          // 调用后端API修改批次
+          const batchId = currentRecord.value?.rawData?.batch_id || formData.batchId
+          const updateData = {
+            batchName: formData.semester,
+            grade: formData.grade,
+            majorName: formData.majorName,
+            semester: formData.semester,
+            startDate: formData.startDate,
+            endDate: formData.endDate,
+            defenseWeight: formData.defenseWeight,
+            previewWeight: formData.previewWeight
+          }
+          
+          await request.put(`/batches/${batchId}`, updateData)
+          
+          // 修改成功后重新获取数据
+          await fetchBatches()
+          
+          dialogVisible.value = false
+          ElMessage.success('✅ 修改批次成功！数据已同步到数据库')
         }
+      } catch (error) {
+        console.error('操作失败:', error)
+        ElMessage.error('❌ 操作失败，请重试')
       }
-      dialogVisible.value = false
     }
   })
 }

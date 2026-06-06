@@ -88,7 +88,7 @@
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
-          :total="filteredData.length"
+          :total="totalRecords"
           :page-sizes="[10, 20, 50, 100]"
           layout="total, sizes, prev, pager, next, jumper"
           @size-change="handleSizeChange"
@@ -115,8 +115,8 @@
             :text-inside="true"
           />
         </el-descriptions-item>
-        <el-descriptions-item label="最后签到时间" :span="2">{{ currentRecord?.lastCheckinTime || '暂无记录' }}</el-descriptions-item>
-        <el-descriptions-item label="最后签到地址" :span="2">{{ currentRecord?.lastCheckinLocation || '暂无记录' }}</el-descriptions-item>
+        <el-descriptions-item label="最后签到时间" :span="2">{{ currentRecord?.lastCheckinTime || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="最后签到地址" :span="2">{{ currentRecord?.lastCheckinLocation || '-' }}</el-descriptions-item>
       </el-descriptions>
 
       <template #footer>
@@ -127,10 +127,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { Search, Refresh, View, Download } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import * as XLSX from 'xlsx'
+import request from '@/utils/request'
 
 const loading = ref(false)
 const tableRef = ref(null)
@@ -147,118 +148,64 @@ const searchForm = reactive({
 
 const currentRecord = ref(null)
 
-const tableData = ref([
-  {
-    id: 1,
-    className: '人工智能231',
-    studentName: '购**',
-    studentId: '2133229428',
-    teacherName: '**',
-    totalDays: 68,
-    checkedDays: 0,
-    lastCheckinTime: null,
-    lastCheckinLocation: null
-  },
-  {
-    id: 2,
-    className: '软件技术231',
-    studentName: '张三',
-    studentId: '2133200101',
-    teacherName: '廖清科',
-    totalDays: 68,
-    checkedDays: 45,
-    lastCheckinTime: '2026-06-03 09:15:32',
-    lastCheckinLocation: '教学楼A301'
-  },
-  {
-    id: 3,
-    className: '软件技术232',
-    studentName: '李四',
-    studentId: '2133201102',
-    teacherName: '王海洋',
-    totalDays: 65,
-    checkedDays: 52,
-    lastCheckinTime: '2026-06-03 08:58:21',
-    lastCheckinLocation: '图书馆302'
-  },
-  {
-    id: 4,
-    className: '计算机科学231',
-    studentName: '王五',
-    studentId: '2133301203',
-    teacherName: '赵六',
-    totalDays: 70,
-    checkedDays: 38,
-    lastCheckinTime: '2026-06-02 14:22:15',
-    lastCheckinLocation: '实验室B205'
-  },
-  {
-    id: 5,
-    className: '大数据技术231',
-    studentName: '赵六',
-    studentId: '2133402204',
-    teacherName: '钱七',
-    totalDays: 68,
-    checkedDays: 60,
-    lastCheckinTime: '2026-06-03 10:05:43',
-    lastCheckinLocation: '机房C102'
-  },
-  {
-    id: 6,
-    className: '信息安全231',
-    studentName: '孙七',
-    studentId: '2133503205',
-    teacherName: '孙八',
-    totalDays: 66,
-    checkedDays: 28,
-    lastCheckinTime: '2026-05-30 11:33:08',
-    lastCheckinLocation: '教学楼D405'
-  },
-  {
-    id: 7,
-    className: '软件技术231',
-    studentName: '周八',
-    studentId: '2133200106',
-    teacherName: '廖清科',
-    totalDays: 68,
-    checkedDays: 55,
-    lastCheckinTime: '2026-06-03 09:42:17',
-    lastCheckinLocation: '教学楼A301'
-  },
-  {
-    id: 8,
-    className: '人工智能232',
-    studentName: '吴九',
-    studentId: '2133307207',
-    teacherName: '郑十',
-    totalDays: 72,
-    checkedDays: 48,
-    lastCheckinTime: '2026-06-02 16:18:29',
-    lastCheckinLocation: '实验室B208'
-  },
-  {
-    id: 9,
-    className: '计算机科学232',
-    studentName: '郑十',
-    studentId: '2133301308',
-    teacherName: '冯十一',
-    totalDays: 68,
-    checkedDays: 62,
-    lastCheckinTime: '2026-06-03 08:45:56',
-    lastCheckinLocation: '图书馆201'
-  },
-  {
-    id: 10,
-    className: '大数据技术232',
-    studentName: '冯十一',
-    studentId: '2133402309',
-    teacherName: '陈十二',
-    totalDays: 65,
-    checkedDays: 35,
-    lastCheckinTime: '2026-06-01 13:27:44',
-    lastCheckinLocation: '机房C105'
+// 从API获取的数据
+const tableData = ref([])
+const totalRecords = ref(0)
+
+/**
+ * 从后端获取签到记录列表
+ */
+async function fetchSignIns() {
+  loading.value = true
+  try {
+    const res = await request.get('/v1/teacher/signins')
+    
+    if (res.data && Array.isArray(res.data)) {
+      // 转换数据格式以匹配前端表格
+      tableData.value = res.data.map((record, index) => ({
+        id: record.sign_id || index + 1,
+        className: record.class_name || '未分配',
+        studentName: record.student_name || '未知',
+        studentId: record.student_no || '-',
+        teacherName: record.teacher_name || '未分配',
+        totalDays: record.total_days || 68,
+        checkedDays: record.checked_days || 0,
+        lastCheckinTime: record.last_sign_time ? formatDate(record.last_sign_time) : '-',
+        lastCheckinLocation: record.location || '-',
+        // 保存原始数据供详情查看使用
+        rawData: record
+      }))
+      
+      totalRecords.value = tableData.value.length
+    }
+  } catch (error) {
+    console.error('获取签到记录列表失败:', error)
+    ElMessage.error('获取签到记录列表失败，请刷新页面重试')
+  } finally {
+    loading.value = false
   }
-])
+}
+
+/**
+ * 格式化日期时间
+ */
+function formatDate(dateStr) {
+  if (!dateStr) return null
+  const date = new Date(dateStr)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  }).replace(/\//g, '-')
+}
+
+// 页面加载时获取数据
+onMounted(() => {
+  fetchSignIns()
+})
 
 const filteredData = computed(() => {
   return tableData.value.filter(item => {
@@ -300,11 +247,12 @@ function getProgressStatus(record) {
 function handleSearch() {
   loading.value = true
   currentPage.value = 1
-  setTimeout(() => {
-    loading.value = false
+  
+  // 重新从后端获取数据
+  fetchSignIns().then(() => {
     const count = filteredData.value.length
     ElMessage.success(`搜索完成，共找到 ${count} 条记录`)
-  }, 300)
+  })
 }
 
 function handleReset() {
@@ -314,6 +262,9 @@ function handleReset() {
   searchForm.semester = '2025-2026学年第1学期(当)'
   currentPage.value = 1
   pageSize.value = 10
+  
+  // 重新获取所有数据
+  fetchSignIns()
   ElMessage.info('已重置搜索条件')
 }
 

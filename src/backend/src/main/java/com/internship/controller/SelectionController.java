@@ -60,10 +60,10 @@ public class SelectionController {
     }
 
     @PutMapping("/{selectionId}/reset")
-    @Operation(summary = "管理员重置选题状态")
-    @PreAuthorize("hasAnyRole('college_admin', 'major_admin')")
+    @Operation(summary = "重置选题状态（管理员或教师）")
+    @PreAuthorize("hasAnyRole('college_admin', 'major_admin', 'teacher')")
     @LogOperation("重置选题")
-    public Result<Void> reset(@PathVariable Integer selectionId, 
+    public Result<Void> reset(@PathVariable Integer selectionId,
                               @RequestParam String reason) {
         selectionService.resetSelection(selectionId, reason);
         return Result.success();

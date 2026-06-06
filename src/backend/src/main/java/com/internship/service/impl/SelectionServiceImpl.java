@@ -109,12 +109,17 @@ public class SelectionServiceImpl extends ServiceImpl<StudentSelectionMapper, St
     @Transactional
     public void resetSelection(Integer selectionId, String reason) {
         StudentSelection selection = getById(selectionId);
-        selection.setStatus("cancelled");
+        
+        // 重置为待审核状态，让学生可以重新提交或等待教师重新审核
+        selection.setStatus("pending");
+        selection.setReviewComment(null); // 清空之前的审核意见
+        
         updateById(selection);
         
-        sendNotificationToStudent(selection.getStudentId(), "选题已重置", "管理员已重置你的选题状态，请重新选题。原因：" + reason);
+        sendNotificationToStudent(selection.getStudentId(), "选题已重置", 
+            "教师/管理员已重置你的选题状态为'待审核'。原因：" + reason);
         
-        log.warn("管理员重置选题{}，原因：{}", selectionId, reason);
+        log.info("重置选题{}状态为待审核，原因：{}", selectionId, reason);
     }
 
     private void sendNotificationToTeacher(Integer studentId, String title, String content) {

@@ -107,7 +107,7 @@
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
-          :total="filteredData.length"
+          :total="totalRecords"
           :page-sizes="[10, 20, 50, 100]"
           layout="total, sizes, prev, pager, next, jumper"
           @size-change="handleSizeChange"
@@ -138,15 +138,33 @@
       </el-descriptions>
       <template #footer>
         <el-button @click="detailDialogVisible = false">关闭</el-button>
+        
+        <!-- 待审核状态下显示审核按钮 -->
+        <template v-if="currentRecord?.status === '待审核'">
+          <el-button type="danger" @click="handleRejectSelection">
+            驳回
+          </el-button>
+          <el-button type="success" @click="handleApproveSelection">
+            通过
+          </el-button>
+        </template>
+        
+        <!-- 已通过或已驳回状态显示重置按钮 -->
+        <template v-if="currentRecord?.status === '已通过' || currentRecord?.status === '已驳回'">
+          <el-button type="warning" @click="handleResetFromDetail">
+            重置状态
+          </el-button>
+        </template>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { Search, Refresh, RefreshRight, View } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import request from '@/utils/request'
 
 const loading = ref(false)
 const tableRef = ref(null)
@@ -165,138 +183,69 @@ const searchForm = reactive({
 const selectedRows = ref([])
 const currentRecord = ref(null)
 
-const tableData = ref([
-  {
-    id: 1746,
-    major: '云计算技术',
-    className: '云计算181',
-    studentName: '陈俊',
-    studentId: '183160710',
-    phone: '185966603647',
-    teacherName: '李太平',
-    topicName: '校园云桌面',
-    topicDescription: '部雾方云设计与实现',
-    status: '已通过',
-    rejectReason: ''
-  },
-  {
-    id: 1747,
-    major: '软件技术',
-    className: '软件184',
-    studentName: '朱颖',
-    studentId: '1831613108',
-    phone: '13800138001',
-    teacherName: '廖清科',
-    topicName: '无线宏站勘察系统设计与实现',
-    topicDescription: '基于移动通信网络优化需求，设计并开发一套无线宏站勘察系统...',
-    status: '待审核',
-    rejectReason: ''
-  },
-  {
-    id: 1748,
-    major: '计算机科学',
-    className: '计科182',
-    studentName: '王云凡',
-    studentId: '1631613426',
-    phone: '13900139002',
-    teacherName: '王海洋',
-    topicName: '电商平台后台管理系统',
-    topicDescription: '设计并实现一个功能完善的电商平台后台管理系统...',
-    status: '已驳回',
-    rejectReason: '题目描述过于简单，缺乏创新性。建议增加更多功能模块或采用更先进的技术方案。'
-  },
-  {
-    id: 1749,
-    major: '大数据技术',
-    className: '大数据181',
-    studentName: '李明',
-    studentId: '1731615200',
-    phone: '13700137003',
-    teacherName: '张三',
-    topicName: '数据可视化分析平台',
-    topicDescription: '使用ECharts和Python构建多维度数据可视化分析平台...',
-    status: '已通过',
-    rejectReason: ''
-  },
-  {
-    id: 1750,
-    major: '人工智能',
-    className: '智能181',
-    studentName: '赵敏',
-    studentId: '1831617105',
-    phone: '13600136004',
-    teacherName: '李四',
-    topicName: '智能客服聊天机器人',
-    topicDescription: '基于NLP技术构建支持多轮对话的智能客服系统...',
-    status: '待审核',
-    rejectReason: ''
-  },
-  {
-    id: 1751,
-    major: '信息安全',
-    className: '安全181',
-    studentName: '孙强',
-    studentId: '1731618200',
-    phone: '13500135005',
-    teacherName: '王五',
-    topicName: '区块链供应链溯源系统',
-    topicDescription: '利用区块链不可篡改特性设计产品溯源系统...',
-    status: '未提交',
-    rejectReason: ''
-  },
-  {
-    id: 1752,
-    major: '软件技术',
-    className: '软件182',
-    studentName: '周芳',
-    studentId: '1831621100',
-    phone: '13400134006',
-    teacherName: '赵六',
-    topicName: '在线教育平台开发',
-    topicDescription: '开发支持视频课程、作业提交、学习进度跟踪的在线教育平台...',
-    status: '已通过',
-    rejectReason: ''
-  },
-  {
-    id: 1753,
-    major: '计算机科学',
-    className: '计科181',
-    studentName: '吴磊',
-    studentId: '1631613410',
-    phone: '13300133007',
-    teacherName: '钱七',
-    topicName: '微服务架构实践',
-    topicDescription: '采用Spring Cloud全家桶构建分布式微服务架构...',
-    status: '已驳回',
-    rejectReason: '技术栈描述不够详细，需要明确使用哪些具体组件和版本，以及如何解决服务间通信问题。'
-  },
-  {
-    id: 1754,
-    major: '软件技术',
-    className: '软件183',
-    studentName: '郑华',
-    studentId: '1831622100',
-    phone: '13200132008',
-    teacherName: '孙八',
-    topicName: '移动端健康App',
-    topicDescription: '开发支持运动记录、饮食管理、健康数据分析的健康管理应用...',
-    status: '待审核',
-    rejectReason: ''
-  },
-  {
-    id: 1755,
-    major: '人工智能',
-    className: '智能182',
-    studentName: '冯丽',
-    studentId: '1831617200',
-    phone: '13100131009',
-    teacherName: '周九',
-    topicName: '图像识别系统',
-    topicDescription: '利用卷积神经网络实现多场景图像识别分类系统...',
-    status: '已通过',
-    rejectReason: ''
+// 从API获取的数据
+const tableData = ref([])
+const totalRecords = ref(0)
+
+/**
+ * 从后端获取选题列表
+ */
+async function fetchSelections() {
+  loading.value = true
+  try {
+    // 调用后端API获取所有选题（支持状态筛选）
+    const params = {}
+    if (searchForm.topicStatus) {
+      params.status = searchForm.topicStatus
+    }
+    
+    const res = await request.get('/v1/teacher/selections/all', { params })
+    
+    if (res.data && Array.isArray(res.data)) {
+      // 转换数据格式以匹配前端表格
+      tableData.value = res.data.map((selection, index) => ({
+        id: selection.selection_id,
+        major: selection.major_name || '未分配',
+        className: selection.class_name || '未分配',
+        studentName: selection.student_name || '未知',
+        studentId: selection.student_no || '-',
+        phone: selection.student_phone || '-',
+        teacherName: selection.teacher_name || '未分配',
+        topicName: selection.topic_name || '未选择题目',
+        topicDescription: selection.topic_description || '',
+        status: formatStatus(selection.status),
+        rejectReason: selection.review_comment || '',
+        rawData: selection
+      }))
+      
+      totalRecords.value = tableData.value.length
+    }
+  } catch (error) {
+    console.error('获取选题列表失败:', error)
+    ElMessage.error('获取选题列表失败，请刷新页面重试')
+  } finally {
+    loading.value = false
   }
-])
+}
+
+/**
+ * 格式化状态显示
+ */
+function formatStatus(status) {
+  const statusMap = {
+    'pending': '待审核',
+    'approved': '已通过',
+    'rejected': '已驳回',
+    'cancelled': '已取消',
+    'submitted': '已提交'
+  }
+  return statusMap[status] || status || '未知'
+}
+
+// 页面加载时获取数据
+onMounted(() => {
+  fetchSelections()
+})
 
 const filteredData = computed(() => {
   return tableData.value.filter(item => {
@@ -328,11 +277,12 @@ function getStatusType(status) {
 function handleSearch() {
   loading.value = true
   currentPage.value = 1
-  setTimeout(() => {
-    loading.value = false
+  
+  // 重新从后端获取数据（带筛选条件）
+  fetchSelections().then(() => {
     const count = filteredData.value.length
     ElMessage.success(`搜索完成，共找到 ${count} 条记录`)
-  }, 300)
+  })
 }
 
 function handleReset() {
@@ -343,6 +293,9 @@ function handleReset() {
   searchForm.teacherName = ''
   currentPage.value = 1
   pageSize.value = 10
+  
+  // 重新获取所有数据
+  fetchSelections()
   ElMessage.info('已重置搜索条件')
 }
 
@@ -355,7 +308,7 @@ function handleViewDetail(row) {
   detailDialogVisible.value = true
 }
 
-function handleResetStatus(row) {
+async function handleResetStatus(row) {
   ElMessageBox.confirm(
     `确定要重置学生 "${row.studentName}" 的选题状态吗？<br/><br/>
      <small style="color: #909399;">当前状态：${row.status} → 将变为"待审核"</small>`,
@@ -366,17 +319,113 @@ function handleResetStatus(row) {
       type: 'warning',
       dangerouslyUseHTMLString: true
     }
-  ).then(() => {
-    const index = tableData.value.findIndex(item => item.id === row.id)
-    if (index > -1) {
-      tableData.value[index].status = '待审核'
-      tableData.value[index].rejectReason = ''
-
-      if (currentRecord.value && currentRecord.value.id === row.id) {
-        currentRecord.value = { ...tableData.value[index] }
-      }
-
+  ).then(async () => {
+    try {
+      // 调用后端API重置选题状态
+      await request.put(`/selections/${row.id}/reset`, null, {
+        params: { reason: '教师手动重置' }
+      })
+      
+      // 重置成功后重新获取数据
+      await fetchSelections()
+      
       ElMessage.success(`✅ 已成功重置学生 ${row.studentName} 的选题状态为"待审核"`)
+    } catch (error) {
+      console.error('重置选题失败:', error)
+      ElMessage.error('❌ 重置选题失败，请重试')
+    }
+  }).catch(() => {})
+}
+
+/**
+ * 审核通过选题（从详情弹窗）
+ */
+async function handleApproveSelection() {
+  if (!currentRecord.value) return
+  
+  try {
+    // 调用后端API审核通过
+    await request.put(`/selections/${currentRecord.value.id}/review`, {
+      status: 'approved',  // 通过
+      comment: '审核通过'
+    })
+    
+    // 审核成功后关闭弹窗并刷新数据
+    detailDialogVisible.value = false
+    await fetchSelections()
+    
+    ElMessage.success(`✅ 已通过学生 ${currentRecord.value.studentName} 的选题！`)
+  } catch (error) {
+    console.error('审核通过失败:', error)
+    ElMessage.error('❌ 审核通过失败，请重试')
+  }
+}
+
+/**
+ * 驳回选题（从详情弹窗）
+ */
+async function handleRejectSelection() {
+  if (!currentRecord.value) return
+  
+  ElMessageBox.prompt('请输入驳回理由', '驳回选题', {
+    confirmButtonText: '确定驳回',
+    cancelButtonText: '取消',
+    inputType: 'textarea',
+    inputPlaceholder: '请输入驳回理由（必填）',
+    inputValidator: (value) => {
+      if (!value || !value.trim()) {
+        return '驳回理由不能为空'
+      }
+    }
+  }).then(async ({ value }) => {
+    try {
+      // 调用后端API驳回选题
+      await request.put(`/selections/${currentRecord.value.id}/review`, {
+        status: 'rejected',  // 驳回
+        comment: value
+      })
+      
+      // 驳回成功后关闭弹窗并刷新数据
+      detailDialogVisible.value = false
+      await fetchSelections()
+      
+      ElMessage.success(`已驳回学生 ${currentRecord.value.studentName} 的选题\n原因：${value}`)
+    } catch (error) {
+      console.error('驳回选题失败:', error)
+      ElMessage.error('❌ 驳回选题失败，请重试')
+    }
+  }).catch(() => {})
+}
+
+/**
+ * 从详情弹窗重置状态
+ */
+async function handleResetFromDetail() {
+  if (!currentRecord.value) return
+  
+  ElMessageBox.confirm(
+    `确定要重置学生 "${currentRecord.value.studentName}" 的选题状态吗？`,
+    '确认重置',
+    {
+      confirmButtonText: '确定重置',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(async () => {
+    try {
+      // 调用后端API重置
+      await request.put(`/selections/${currentRecord.value.id}/reset`, null, {
+        params: { reason: '从详情页重置' }
+      })
+      
+      // 重置成功后关闭弹窗并刷新数据
+      detailDialogVisible.value = false
+      await fetchSelections()
+      
+      ElMessage.success(`✅ 已重置学生 ${currentRecord.value.studentName} 的选题状态`)
+    } catch (error) {
+      console.error('重置失败:', error)
+      ElMessage.error('❌ 重置失败，请重试')
     }
   }).catch(() => {})
 }

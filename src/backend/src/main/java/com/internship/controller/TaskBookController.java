@@ -86,7 +86,7 @@ public class TaskBookController {
     public Result<Void> reject(
             @PathVariable Integer taskId,
             @RequestParam String rejectComment) {
-        
+
         TaskBook taskBook = taskBookMapper.selectById(taskId);
         if (taskBook != null) {
             taskBook.setStatus("rejected");
@@ -95,7 +95,16 @@ public class TaskBookController {
             taskBook.setRejectComment(rejectComment);
             taskBookMapper.updateById(taskBook);
         }
-        
+
+        return Result.success();
+    }
+
+    @DeleteMapping("/{taskId}")
+    @Operation(summary = "删除任务书（教师/管理员重置）")
+    @PreAuthorize("hasAnyRole('teacher', 'college_admin')")
+    @LogOperation("删除任务书")
+    public Result<Void> delete(@PathVariable Integer taskId) {
+        taskBookMapper.deleteById(taskId);
         return Result.success();
     }
 }

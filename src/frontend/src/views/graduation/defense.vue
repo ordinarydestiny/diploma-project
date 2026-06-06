@@ -46,20 +46,22 @@
             <el-input v-model="searchForm.teacherName" placeholder="请输入老师姓名" clearable />
           </div>
         </el-col>
-        <el-col :span="18">
-          <div class="search-buttons">
-            <el-button type="primary" @click="handleSearch">
-              <el-icon><Search /></el-icon>
-              &nbsp;搜索
-            </el-button>
-            <el-button @click="handleReset">
-              <el-icon><Refresh /></el-icon>
-              &nbsp;重置
-            </el-button>
-            <el-button type="success" plain @click="handleExport">
-              <el-icon><Download /></el-icon>
-              &nbsp;导出存档
-            </el-button>
+        <el-col :xs="24" :sm="12" :md="6">
+          <div class="search-item search-buttons-item">
+            <div class="search-buttons-inline">
+              <el-button type="primary" @click="handleSearch">
+                <el-icon><Search /></el-icon>
+                &nbsp;搜索
+              </el-button>
+              <el-button @click="handleReset">
+                <el-icon><Refresh /></el-icon>
+                &nbsp;重置
+              </el-button>
+              <el-button type="success" plain @click="handleExport">
+                <el-icon><Download /></el-icon>
+                &nbsp;导出存档
+              </el-button>
+            </div>
           </div>
         </el-col>
       </el-row>
@@ -110,7 +112,7 @@
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
-          :total="filteredData.length"
+          :total="totalRecords"
           :page-sizes="[10, 20, 50, 100]"
           layout="total, sizes, prev, pager, next, jumper"
           @size-change="handleSizeChange"
@@ -160,7 +162,7 @@
           :model="defenseForm"
           :rules="defenseRules"
           label-width="120px"
-          :disabled="isFormDisabled"
+          :disabled="isFormDisabled && !canEdit"
         >
           <el-row :gutter="24">
             <el-col :span="12">
@@ -291,10 +293,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { Search, Refresh, EditPen, Check, Close, Download, Upload, RefreshLeft } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as XLSX from 'xlsx'
+import request from '@/utils/request'
 
 const loading = ref(false)
 const tableRef = ref(null)
@@ -341,93 +344,104 @@ const defenseRules = {
   ]
 }
 
-const tableData = ref([
-  {
-    id: 58996,
-    studentName: '张三',
-    studentId: '19310111',
-    teacherName: '廖',
-    topicName: 'DDS波形发生器',
-    status: '未答辩',
-    score: null,
-    grade: null,
-    submitMethod: null,
-    pdfFile: null,
-    pdfFileName: null,
-    defenseDate: null,
-    location: null,
-    committee: null,
-    comment: null
-  },
-  {
-    id: 58997,
-    studentName: '李四',
-    studentId: '19310222',
-    teacherName: '王海洋',
-    topicName: '电商平台后台管理系统',
-    status: '待提交',
-    score: null,
-    grade: null,
-    submitMethod: null,
-    pdfFile: null,
-    pdfFileName: null,
-    defenseDate: null,
-    location: null,
-    committee: null,
-    comment: null
-  },
-  {
-    id: 58998,
-    studentName: '王五',
-    studentId: '19310333',
-    teacherName: '赵六',
-    topicName: '数据可视化分析平台',
-    status: '待审核',
-    score: 85,
-    grade: '良好',
-    submitMethod: 'student',
-    pdfFile: null,
-    pdfFileName: '王五_答辩记录表.pdf',
-    defenseDate: '2026-05-20 14:00:00',
-    location: '教学楼A301',
-    committee: '钱七(主席)、孙八、周九',
-    comment: '该生在答辩过程中表现良好，对系统的设计思路清晰，能够较好地回答评委提出的问题。系统功能完整，代码质量较高。建议在后续工作中进一步优化用户体验。'
-  },
-  {
-    id: 58999,
-    studentName: '赵六',
-    studentId: '19310444',
-    teacherName: '钱七',
-    topicName: '大数据技术在供应链管理中的应用',
-    status: '已通过',
-    score: 92,
-    grade: '优秀',
-    submitMethod: 'teacher',
-    pdfFile: null,
-    pdfFileName: '赵六_答辩记录表_最终版.pdf',
-    defenseDate: '2026-05-20 15:30:00',
-    location: '教学楼A302',
-    committee: '廖清科(主席)、王海洋、赵六',
-    comment: '该生的毕业设计选题具有实际应用价值，研究方法科学合理，论文写作规范。答辩时表述清晰，逻辑性强，能够准确回答问题。大数据分析模型设计合理，实验结果充分。总体评价优秀。'
-  },
-  {
-    id: 59000,
-    studentName: '孙七',
-    studentId: '19310555',
-    teacherName: '周八',
-    topicName: '智能推荐算法研究与实现',
-    status: '需修改',
-    score: 78,
-    grade: '中等',
-    submitMethod: 'student',
-    pdfFile: null,
-    pdfFileName: '孙七_答辩记录表_v2.pdf',
-    defenseDate: '2026-05-21 09:00:00',
-    location: '教学楼B201',
-    committee: '吴九(主席)、郑十、王十一',
-    comment: '该生答辩表现一般，对部分核心算法的理解不够深入。需要补充实验数据分析，优化推荐算法的性能指标说明。请在一周内修改完毕重新提交。'
+// 从API获取的数据
+const tableData = ref([])
+const totalRecords = ref(0)
+
+/**
+ * 从后端获取答辩记录列表
+ */
+async function fetchDefenseRecords() {
+  loading.value = true
+  try {
+    const res = await request.get('/v1/teacher/defenses')
+    
+    if (res.data && Array.isArray(res.data)) {
+      // 转换数据格式以匹配前端表格
+      tableData.value = res.data.map((record, index) => {
+        const status = record.status || ''
+        const isNotStarted = status === 'not_started'
+        
+        return {
+          id: record.defense_id,
+          studentName: record.student_name || '未知',
+          studentId: record.student_no || '-',
+          teacherName: record.teacher_name || '未分配',
+          topicName: record.topic_name || '未选择题目',
+          status: formatStatus(status),
+          score: isNotStarted ? null : (record.defense_score_num || null),
+          grade: isNotStarted ? '暂无' : formatGrade(record.defense_score),
+          submitMethod: record.submitter_type || null,
+          pdfFile: null,
+          pdfFileName: record.file_name || null,
+          defenseDate: record.defense_datetime ? formatDate(record.defense_datetime) : null,
+          location: record.location || null,
+          committee: record.committee || null,
+          comment: record.review_comment || null,
+          rawData: record
+        }
+      })
+      
+      totalRecords.value = tableData.value.length
+    }
+  } catch (error) {
+    console.error('获取答辩记录列表失败:', error)
+    ElMessage.error('获取答辩记录列表失败，请刷新页面重试')
+  } finally {
+    loading.value = false
   }
-])
+}
+
+/**
+ * 格式化状态显示
+ */
+function formatStatus(status) {
+  const statusMap = {
+    'not_started': '未开始',
+    'pending': '待审核',
+    'approved': '已通过',
+    'rejected': '需修改',
+    'draft': '草稿',
+    'submitted': '已提交'
+  }
+  return statusMap[status] || status || '未知'
+}
+
+/**
+ * 格式化成绩等级显示
+ */
+function formatGrade(grade) {
+  if (!grade) return null
+  const gradeMap = {
+    'excellent': '优秀',
+    'good': '良好',
+    'medium': '中等',
+    'pass': '及格',
+    'fail': '不及格'
+  }
+  return gradeMap[grade] || grade
+}
+
+/**
+ * 格式化日期时间
+ */
+function formatDate(dateStr) {
+  if (!dateStr) return null
+  const date = new Date(dateStr)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  }).replace(/\//g, '-')
+}
+
+// 页面加载时获取数据
+onMounted(() => {
+  fetchDefenseRecords()
+})
 
 const filteredData = computed(() => {
   return tableData.value.filter(item => {
@@ -447,12 +461,31 @@ const paginatedData = computed(() => {
 
 const isFormDisabled = computed(() => {
   if (!currentRecord.value) return false
-  return ['已通过', '未答辩'].includes(currentRecord.value.status)
+  // 已通过的记录默认禁用表单（防止误修改），但可以通过按钮启用
+  return currentRecord.value.status === '已通过'
 })
 
 const canEdit = computed(() => {
   if (!currentRecord.value) return false
-  return ['待提交', '需修改'].includes(currentRecord.value.status)
+  
+  // 指导老师在以下情况下可以代为录入/修改：
+  // 1. 未答辩 - 学生还没有答辩记录
+  // 2. 待提交 - 学生已填写但未正式提交
+  // 3. 需修改 - 被驳回后需要重新提交
+  // 4. 已通过但无成绩 - 特殊情况允许补充录入（可选）
+  
+  const editableStatuses = ['未答辩', '待提交', '需修改']
+  
+  // 如果是已通过但没有分数或PDF，也允许重新录入
+  if (currentRecord.value.status === '已通过') {
+    const hasScore = currentRecord.value.score && currentRecord.value.score > 0
+    const hasFile = currentRecord.value.pdfFileName || fileList.value.length > 0
+    if (!hasScore && !hasFile) {
+      return true  // 允许补充录入
+    }
+  }
+  
+  return editableStatuses.includes(currentRecord.value.status)
 })
 
 function getStatusType(status) {
@@ -469,8 +502,8 @@ function getStatusType(status) {
 function getGradeType(grade) {
   const map = {
     '优秀': 'success',
-    '良好': '',
-    '中等': 'warning',
+    '良好': 'warning',
+    '中等': 'primary',
     '及格': 'info',
     '不及格': 'danger'
   }
@@ -480,11 +513,12 @@ function getGradeType(grade) {
 function handleSearch() {
   loading.value = true
   currentPage.value = 1
-  setTimeout(() => {
-    loading.value = false
+  
+  // 重新从后端获取数据
+  fetchDefenseRecords().then(() => {
     const count = filteredData.value.length
     ElMessage.success(`搜索完成，共找到 ${count} 条记录`)
-  }, 300)
+  })
 }
 
 function handleReset() {
@@ -495,6 +529,9 @@ function handleReset() {
   searchForm.semester = '2024-2025学年第2学期(当前)'
   currentPage.value = 1
   pageSize.value = 10
+  
+  // 重新获取所有数据
+  fetchDefenseRecords()
   ElMessage.info('已重置搜索条件')
 }
 
@@ -571,25 +608,33 @@ async function handleSubmitAsTeacher() {
         cancelButtonText: '取消',
         type: 'info'
       }
-    ).then(() => {
-      const index = tableData.value.findIndex(item => item.id === currentRecord.value.id)
-      if (index > -1) {
-        tableData.value[index].score = defenseForm.score
-        tableData.value[index].grade = defenseForm.grade
-        tableData.value[index].defenseDate = defenseForm.defenseDate
-        tableData.value[index].location = defenseForm.location
-        tableData.value[index].committee = defenseForm.committee
-        tableData.value[index].comment = defenseForm.comment
-        tableData.value[index].submitMethod = 'teacher'
-        tableData.value[index].status = '待审核'
-
+    ).then(async () => {
+      try {
+        // 准备提交数据
+        const submitData = new FormData()
+        submitData.append('selectionId', currentRecord.value.selectionId || currentRecord.value.id)
+        submitData.append('defenseScore', defenseForm.score?.toString() || '0')
+        submitData.append('defenseScoreNum', defenseForm.score || 0)
+        
+        // 如果有PDF文件，添加到FormData
         if (defenseForm.pdfFile) {
-          tableData.value[index].pdfFileName = `${currentRecord.value.studentName}_答辩记录表_${new Date().toISOString().slice(0, 10)}.pdf`
+          submitData.append('pdfFile', defenseForm.pdfFile)
         }
-
-        currentRecord.value = { ...tableData.value[index] }
-
-        ElMessage.success(`✅ 已成功代为录入 ${currentRecord.value.studentName} 的答辩信息\n录入方式：老师直接录入\n当前状态：待审核`)
+        
+        // 调用后端API：教师录入答辩成绩
+        await request.post('/defenses/submitByTeacher', submitData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        
+        // 录入成功后重新获取数据
+        await fetchDefenseRecords()
+        
+        detailDialogVisible.value = false
+        
+        ElMessage.success(`✅ 已成功代为录入 ${currentRecord.value.studentName} 的答辩信息！\n数据已同步到数据库\n当前状态：待审核`)
+      } catch (error) {
+        console.error('录入答辩信息失败:', error)
+        ElMessage.error('❌ 录入失败，请重试')
       }
     }).catch(() => {})
   } catch (error) {
@@ -597,7 +642,7 @@ async function handleSubmitAsTeacher() {
   }
 }
 
-function handleApprove() {
+async function handleApprove() {
   ElMessageBox.confirm(
     '确定要审核通过该生的答辩记录吗？通过后仍可驳回要求重新提交。',
     '确认审核通过',
@@ -606,12 +651,24 @@ function handleApprove() {
       cancelButtonText: '取消',
       type: 'success'
     }
-  ).then(() => {
-    const index = tableData.value.findIndex(item => item.id === currentRecord.value.id)
-    if (index > -1) {
-      tableData.value[index].status = '已通过'
-      currentRecord.value = { ...tableData.value[index] }
-      ElMessage.success(`✅ 已通过 ${currentRecord.value.studentName} 的答辩记录\n该记录已正式存档`)
+  ).then(async () => {
+    try {
+      // 调用后端API：审核通过
+      await request.put(`/defenses/${currentRecord.value.id}/review`, null, {
+        params: {
+          status: 'approved',
+          comment: '答辩记录审核通过，成绩有效'
+        }
+      })
+      
+      // 审核成功后关闭弹窗并刷新数据
+      detailDialogVisible.value = false
+      await fetchDefenseRecords()
+      
+      ElMessage.success(`✅ 已通过 ${currentRecord.value.studentName} 的答辩记录！\n该记录已正式存档并同步到数据库`)
+    } catch (error) {
+      console.error('审核通过失败:', error)
+      ElMessage.error('❌ 审核失败，请重试')
     }
   }).catch(() => {})
 }
@@ -627,12 +684,24 @@ function handleReject() {
         return '驳回理由不能为空'
       }
     }
-  }).then(({ value }) => {
-    const index = tableData.value.findIndex(item => item.id === currentRecord.value.id)
-    if (index > -1) {
-      tableData.value[index].status = '需修改'
-      currentRecord.value = { ...tableData.value[index] }
-      ElMessage.success(`已将 ${currentRecord.value.studentName} 的答辩记录驳回\n原因：${value}`)
+  }).then(async ({ value }) => {
+    try {
+      // 调用后端API：驳回
+      await request.put(`/defenses/${currentRecord.value.id}/review`, null, {
+        params: {
+          status: 'rejected',
+          comment: value
+        }
+      })
+      
+      // 驳回成功后关闭弹窗并刷新数据
+      detailDialogVisible.value = false
+      await fetchDefenseRecords()
+      
+      ElMessage.success(`已将 ${currentRecord.value.studentName} 的答辩记录驳回\n原因：${value}\n\n数据已同步到数据库`)
+    } catch (error) {
+      console.error('驳回失败:', error)
+      ElMessage.error('❌ 驳回失败，请重试')
     }
   }).catch(() => {})
 }
@@ -648,12 +717,24 @@ function handleRejectAgain() {
         return '驳回理由不能为空'
       }
     }
-  }).then(({ value }) => {
-    const index = tableData.value.findIndex(item => item.id === currentRecord.value.id)
-    if (index > -1) {
-      tableData.value[index].status = '需修改'
-      currentRecord.value = { ...tableData.value[index] }
-      ElMessage.success(`已将 ${currentRecord.value.studentName} 的已通过记录驳回\n原因：${value}\n学生需重新提交修改后的材料`)
+  }).then(async ({ value }) => {
+    try {
+      // 调用后端API：驳回（即使是已通过的也可以驳回）
+      await request.put(`/defenses/${currentRecord.value.id}/review`, null, {
+        params: {
+          status: 'rejected',
+          comment: `[重新驳回] ${value}`
+        }
+      })
+      
+      // 驳回成功后关闭弹窗并刷新数据
+      detailDialogVisible.value = false
+      await fetchDefenseRecords()
+      
+      ElMessage.success(`已将 ${currentRecord.value.studentName} 的答辩记录驳回修改\n原因：${value}\n\n数据已同步到数据库`)
+    } catch (error) {
+      console.error('驳回失败:', error)
+      ElMessage.error('❌ 驳回失败，请重试')
     }
   }).catch(() => {})
 }
@@ -752,6 +833,16 @@ function handleCurrentChange(val) {
   gap: 10px;
   align-items: center;
   height: 32px;
+}
+
+.search-buttons-item {
+  padding-top: 30px;
+}
+
+.search-buttons-inline {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 .table-section {

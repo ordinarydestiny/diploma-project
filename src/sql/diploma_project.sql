@@ -30,24 +30,6 @@ CREATE TABLE `colleges`  (
   PRIMARY KEY (`college_id`) USING BTREE,
   UNIQUE INDEX `uk_college_name`(`college_id` ASC) USING BTREE COMMENT '学院名称唯一约束'
 ) ENGINE = InnoDB AUTO_INCREMENT = 11 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '学院表' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of colleges
--- ----------------------------
-INSERT INTO `colleges` VALUES (1, '信息工程学院', '计算机、软件、人工智能等相关专业', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `colleges` VALUES (2, '智能制造学院', '机械、自动化、机器人等专业', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `colleges` VALUES (3, '经济管理学院', '会计、工商管理、市场营销等专业', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `colleges` VALUES (4, '外国语学院', '英语、日语、翻译等专业', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `colleges` VALUES (5, '理学院', '数学、物理、化学等专业', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `colleges` VALUES (6, '人文社科学院', '中文、历史、哲学等专业', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `colleges` VALUES (7, '艺术学院', '音乐、美术、设计等专业', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `colleges` VALUES (8, '建筑与城市规划学院', '建筑学、城乡规划、土木工程等', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `colleges` VALUES (9, '医学院', '临床医学、护理学、药学等专业', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `colleges` VALUES (10, '继续教育学院', '成人教育、培训、进修等', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-
--- ----------------------------
--- Table structure for defenses
--- ----------------------------
 DROP TABLE IF EXISTS `defenses`;
 CREATE TABLE `defenses`  (
   `defense_id` int NOT NULL AUTO_INCREMENT COMMENT '答辩记录唯一ID',
@@ -83,20 +65,6 @@ CREATE TABLE `defenses`  (
   CONSTRAINT `fk_def_submitter` FOREIGN KEY (`submitter_id`) REFERENCES `users` (`user_id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 11 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '答辩记录表【完整增强版】（含五级制+数值双字段、答辩时间地点委员会、灵活的成绩计算、5种状态）' ROW_FORMAT = DYNAMIC;
 
--- ----------------------------
--- Records of defenses
--- ----------------------------
-INSERT INTO `defenses` VALUES (1, 1, 'good', 85.00, 12, 'student', 14, '2026-06-01 10:00:00', '2026-06-05 14:00:00', '教学楼A301', '张教授(主席)、李副教授、王讲师', 'approved', 6, '2026-06-06 09:00:00', '表现良好（良好）：PPT制作精美，逻辑清晰；对Spring Boot原理理解深入；能回答关于数据库优化和缓存策略的问题；项目演示流畅。答辩时长25分钟。', '2026-06-04 16:37:35', '2026-06-04 16:37:35');
-INSERT INTO `defenses` VALUES (2, 2, 'medium', 75.00, 13, 'student', 15, '2026-06-02 09:30:00', '2026-06-06 14:30:00', '教学楼A303', '刘教授(主席)、赵副教授、孙讲师', 'approved', 7, '2026-06-07 10:00:00', '表现中等（中等）：Vue3组件化实现基本正确；但对Composition API部分概念模糊；项目功能完整但缺乏亮点；建议加强理论基础学习。答辩时长22分钟。', '2026-06-04 16:37:35', '2026-06-04 16:37:35');
-INSERT INTO `defenses` VALUES (3, 3, 'good', 83.00, 14, 'student', 16, '2026-06-03 14:00:00', '2026-06-07 15:00:00', '机械楼报告厅', '陈教授(主席)、钱副教授、周讲师', 'approved', 8, '2026-06-08 09:30:00', '表现良好（良好）：实物演示效果好；STM32编程规范；对传感器原理讲解清晰；回答了关于低功耗设计的问题。答辩时长28分钟（含演示）。', '2026-06-04 16:37:35', '2026-06-04 16:37:35');
-INSERT INTO `defenses` VALUES (4, 4, 'pass', 68.00, 15, 'student', 17, '2026-06-04 10:00:00', '2026-06-08 14:00:00', '计科机房', '吴教授(主席)、郑副教授、冯讲师', 'approved', 6, '2026-06-09 11:00:00', '表现及格（及格）：响应式方案可行但实现粗糙；CSS代码冗余较多；对PWA概念了解不深；勉强回答了浏览器兼容性问题。答辩时长18分钟。', '2026-06-04 16:37:35', '2026-06-04 16:37:35');
-INSERT INTO `defenses` VALUES (5, 5, 'excellent', 92.00, 16, 'student', 19, '2026-06-01 15:00:00', '2026-06-05 16:00:00', '经管学院会议室', '王教授(主席)、李副教授、张讲师', 'approved', 9, '2026-06-06 15:00:00', '表现优秀（优秀）：论文逻辑严密，数据分析方法科学；对企业数字化转型有独到见解；引用文献权威且新颖；回答问题深刻且有启发性。答辩时长32分钟。', '2026-06-04 16:37:35', '2026-06-04 16:37:35');
-INSERT INTO `defenses` VALUES (9, 7, NULL, NULL, 18, 'student', 15, '2026-06-05 10:00:00', '2026-06-09 14:00:00', '外语语音室', '赵教授(主席)、钱副教授、孙讲师', 'rejected', 11, '2026-06-10 09:00:00', '材料不合格：答辩记录单格式错误；缺少导师签字页；PPT页数过多（60页），建议精简至30页以内。修改后重新提交。', '2026-06-04 16:37:49', '2026-06-04 16:37:49');
-INSERT INTO `defenses` VALUES (10, 10, NULL, NULL, 19, 'student', 21, '2026-06-06 14:00:00', '2026-06-10 15:00:00', '数学系办公室', '周教授(主席)、吴副教授、郑讲师', 'rejected', 10, '2026-06-11 10:00:00', '学生未到场参加答辩（无故缺席），按缺勤处理。需申请延期答辩并说明原因。', '2026-06-04 16:37:49', '2026-06-04 16:37:49');
-
--- ----------------------------
--- Table structure for files
--- ----------------------------
 DROP TABLE IF EXISTS `files`;
 CREATE TABLE `files`  (
   `file_id` int NOT NULL AUTO_INCREMENT COMMENT '文件唯一ID',
@@ -120,38 +88,6 @@ CREATE TABLE `files`  (
   CONSTRAINT `fk_file_uploader` FOREIGN KEY (`uploader_id`) REFERENCES `users` (`user_id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 26 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '统一文件管理表（支持业务关联、去重校验、逻辑删除）' ROW_FORMAT = DYNAMIC;
 
--- ----------------------------
--- Records of files
--- ----------------------------
-INSERT INTO `files` VALUES (1, '中期报告_小明.pdf', '/uploads/midterm/mid_xiaoming.pdf', 204800, 'application/pdf', 'abc123', 14, '2026-06-04 15:25:21', '192.168.1.100', 'midterm_report', 1, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (2, '中期报告_小红.pdf', '/uploads/midterm/mid_xiaohong.pdf', 198400, 'application/pdf', 'def456', 15, '2026-06-04 15:25:21', '192.168.1.101', 'midterm_report', 2, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (3, '中期报告_小刚.pdf', '/uploads/midterm/mid_xiaogang.pdf', 215600, 'application/pdf', 'ghi789', 16, '2026-06-04 15:25:21', '192.168.1.102', 'midterm_report', 3, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (4, '中期报告_小李.pdf', '/uploads/midterm/mid_xiaoli.pdf', 189200, 'application/pdf', 'jkl012', 17, '2026-06-04 15:25:21', '192.168.1.103', 'midterm_report', 4, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (5, '中期报告_小赵_v2.pdf', '/uploads/midterm/mid_xiaozhao_v2.pdf', 225000, 'application/pdf', 'mno345', 18, '2026-06-04 15:25:21', '192.168.1.104', 'midterm_report', 5, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (6, '最终报告_小明.pdf', '/uploads/final/final_xiaoming.pdf', 512000, 'application/pdf', 'pqr678', 14, '2026-06-04 15:25:21', '192.168.1.100', 'final_report', 1, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (7, '最终报告_小红.pdf', '/uploads/final/final_xiaohong.pdf', 498200, 'application/pdf', 'stu901', 15, '2026-06-04 15:25:21', '192.168.1.101', 'final_report', 2, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (8, '最终报告_小刚.pdf', '/uploads/final/final_xiaogang.pdf', 534500, 'application/pdf', 'vwx234', 16, '2026-06-04 15:25:21', '192.168.1.102', 'final_report', 3, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (9, '最终报告_小李.pdf', '/uploads/final/final_xiaoli.pdf', 487300, 'application/pdf', 'yza567', 17, '2026-06-04 15:25:21', '192.168.1.103', 'final_report', 4, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (10, '最终报告_小钱.pdf', '/uploads/final/final_xiaoqian.pdf', 501200, 'application/pdf', 'bcd890', 19, '2026-06-04 15:25:21', '192.168.1.105', 'final_report', 6, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (11, '最终报告_小孙.pdf', '/uploads/final/final_xiaosun.pdf', 476800, 'application/pdf', 'efg123', 20, '2026-06-04 15:25:21', '192.168.1.106', 'final_report', 7, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (12, '答辩记录_小明.pdf', '/uploads/defense/def_xiaoming.pdf', 80000, 'application/pdf', 'hij456', 14, '2026-06-04 15:25:21', '192.168.1.100', 'defense_record', 1, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (13, '答辩记录_小红.pdf', '/uploads/defense/def_xiaohong.pdf', 75600, 'application/pdf', 'klm789', 15, '2026-06-04 15:25:21', '192.168.1.101', 'defense_record', 2, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (14, '答辩记录_小刚.pdf', '/uploads/defense/def_xiaogang.pdf', 82300, 'application/pdf', 'nop012', 16, '2026-06-04 15:25:21', '192.168.1.102', 'defense_record', 3, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (15, '答辩记录_小李.pdf', '/uploads/defense/def_xiaoli.pdf', 79400, 'application/pdf', 'qrs345', 17, '2026-06-04 15:25:21', '192.168.1.103', 'defense_record', 4, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (16, '答辩记录_小钱.pdf', '/uploads/defense/def_xiaoqian.pdf', 81100, 'application/pdf', 'tuv678', 19, '2026-06-04 15:25:21', '192.168.1.105', 'defense_record', 6, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (17, '批阅意见_小明中期.pdf', '/uploads/guide/guide_mid_xiaoming.pdf', 102400, 'application/pdf', 'wxy901', 6, '2026-06-04 15:25:21', '10.0.1.1', 'guide_attachment', 1, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (18, '批阅意见_小明终期.pdf', '/uploads/guide/guide_final_xiaoming.pdf', 115600, 'application/pdf', 'zab234', 6, '2026-06-04 15:25:21', '10.0.1.1', 'guide_attachment', 1, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (19, '批阅意见_小红中期.pdf', '/uploads/guide/guide_mid_xiaohong.pdf', 98700, 'application/pdf', 'cde567', 7, '2026-06-04 15:25:21', '10.0.1.2', 'guide_attachment', 2, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (20, '批阅意见_小刚中期.pdf', '/uploads/guide/guide_mid_xiaogang.pdf', 105300, 'application/pdf', 'fgh890', 8, '2026-06-04 15:25:21', '10.0.1.3', 'guide_attachment', 3, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (21, '李专业签名.png', '/uploads/signatures/li.png', 15360, 'image/png', 'ijk123', 3, '2026-06-04 15:25:21', '127.0.0.1', 'signature', 3, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (22, '王指导签名.png', '/uploads/signatures/wang.png', 15360, 'image/png', 'lmn456', 6, '2026-06-04 15:25:21', '127.0.0.1', 'signature', 6, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (23, '赵指导签名.png', '/uploads/signatures/zhao.png', 14890, 'image/png', 'opq789', 7, '2026-06-04 15:25:21', '127.0.0.1', 'signature', 7, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (24, '孙指导签名.png', '/uploads/signatures/sun.png', 16230, 'image/png', 'rst012', 8, '2026-06-04 15:25:21', '127.0.0.1', 'signature', 8, 0, '2026-06-04 15:25:21');
-INSERT INTO `files` VALUES (25, '刘院副签名.png', '/uploads/signatures/liu.png', 15780, 'image/png', 'uvw345', 2, '2026-06-04 15:25:21', '127.0.0.1', 'signature', 2, 0, '2026-06-04 15:25:21');
-
--- ----------------------------
--- Table structure for final_checks
--- ----------------------------
 DROP TABLE IF EXISTS `final_checks`;
 CREATE TABLE `final_checks`  (
   `check_id` int NOT NULL AUTO_INCREMENT COMMENT '检查记录唯一ID',
@@ -186,15 +122,6 @@ CREATE TABLE `final_checks`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '最终检查表【增强版】（含version + 定稿锁定 + 定稿时间戳）' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of final_checks
--- ----------------------------
-INSERT INTO `final_checks` VALUES (1, 1, 6, '2026-05-20 16:00:00', 1, 1, 1, '2026-05-22 09:00:00', 'approved', 6, '2026-05-22 09:30:00', '功能完整，代码规范（88分）：系统包含用户、选题、任务书、签到、中期检查等核心模块；数据库设计合理，采用MySQL 8.0；前端使用Vue3+Element Plus，响应式布局良好；代码注释完整，符合企业级开发标准。建议后续可考虑微服务架构升级。', 88, NULL, '2026-06-04 16:37:12', '2026-06-04 16:37:12');
-INSERT INTO `final_checks` VALUES (2, 2, 7, '2026-05-21 14:00:00', 1, 1, 1, '2026-05-23 10:00:00', 'approved', 7, '2026-05-23 11:00:00', '在线考试系统完成度高（82分）：实现了题库管理、在线答题、自动阅卷、成绩统计等功能；UI交互流畅，用户体验良好；自动阅卷算法准确率95%以上。不足：缺少防作弊机制，建议后续完善。', 82, NULL, '2026-06-04 16:37:12', '2026-06-04 16:37:12');
-INSERT INTO `final_checks` VALUES (3, 3, 8, '2026-05-22 15:30:00', 1, 1, 1, '2026-05-24 09:00:00', 'approved', 8, '2026-05-24 10:00:00', '智能家居系统实物演示成功（85分）：STM32主控板运行稳定；温湿度传感器数据采集准确（误差<2%）；WiFi远程控制响应时间<500ms；APP界面友好。创新点：结合MQTT协议实现多设备联动。', 85, NULL, '2026-06-04 16:37:12', '2026-06-04 16:37:12');
-INSERT INTO `final_checks` VALUES (4, 4, 9, '2026-05-23 10:00:00', 1, 1, 1, '2026-05-25 09:30:00', 'approved', 6, '2026-05-25 10:30:00', '移动端适配效果优秀（80分）：在iOS/Android/Windows多平台测试通过；断点设置合理（320px/768px/1024px）；PWA支持离线访问。建议增加暗黑模式支持。', 80, NULL, '2026-06-04 16:37:12', '2026-06-04 16:37:12');
-INSERT INTO `final_checks` VALUES (5, 5, 10, '2026-05-24 16:00:00', 1, 1, 1, '2026-05-26 09:00:00', 'approved', 9, '2026-05-26 10:00:00', '论文质量优秀（90分）：文献综述全面（引用58篇，近5年占70%）；案例调研深入（访谈3家企业）；研究方法科学（混合研究法）；结论具有实践指导价值。', 90, NULL, '2026-06-04 16:37:12', '2026-06-04 16:37:12');
-
--- ----------------------------
 -- Table structure for final_scores
 -- ----------------------------
 DROP TABLE IF EXISTS `final_scores`;
@@ -223,22 +150,6 @@ CREATE TABLE `final_scores`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 13 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '成绩汇总表（自动计算、等级评定、公布控制）' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of final_scores
--- ----------------------------
-INSERT INTO `final_scores` VALUES (1, 1, 88, 85, 86.80, 'B', 1, 1, '2026-06-10 10:00:00', '2026-06-04 16:37:55', 'auto', '2026-06-04 16:37:55', '2026-06-04 16:37:55');
-INSERT INTO `final_scores` VALUES (2, 2, 82, 75, 78.70, 'C', 1, 2, '2026-06-11 10:00:00', '2026-06-04 16:37:55', 'auto', '2026-06-04 16:37:55', '2026-06-04 16:37:55');
-INSERT INTO `final_scores` VALUES (3, 3, 85, 83, 84.10, 'B', 1, 2, '2026-06-11 14:00:00', '2026-06-04 16:37:55', 'auto', '2026-06-04 16:37:55', '2026-06-04 16:37:55');
-INSERT INTO `final_scores` VALUES (4, 4, 80, 68, 74.60, 'C', 1, 1, '2026-06-12 09:00:00', '2026-06-04 16:37:55', 'auto', '2026-06-04 16:37:55', '2026-06-04 16:37:55');
-INSERT INTO `final_scores` VALUES (5, 5, 90, 92, 90.80, 'A', 1, 1, '2026-06-10 15:00:00', '2026-06-04 16:37:55', 'auto', '2026-06-04 16:37:55', '2026-06-04 16:37:55');
-INSERT INTO `final_scores` VALUES (6, 8, NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-04 16:37:55', '2026-06-04 16:37:55');
-INSERT INTO `final_scores` VALUES (7, 9, NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-04 16:37:55', '2026-06-04 16:37:55');
-INSERT INTO `final_scores` VALUES (8, 6, NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-04 16:37:59', '2026-06-04 16:37:59');
-INSERT INTO `final_scores` VALUES (9, 7, 65, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-04 16:37:59', '2026-06-04 16:37:59');
-INSERT INTO `final_scores` VALUES (10, 10, 55, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-04 16:37:59', '2026-06-04 16:37:59');
-INSERT INTO `final_scores` VALUES (11, 11, NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-04 16:37:59', '2026-06-04 16:37:59');
-INSERT INTO `final_scores` VALUES (12, 12, NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-04 16:37:59', '2026-06-04 16:37:59');
-
--- ----------------------------
 -- Table structure for majors
 -- ----------------------------
 DROP TABLE IF EXISTS `majors`;
@@ -256,28 +167,6 @@ CREATE TABLE `majors`  (
   CONSTRAINT `fk_major_college` FOREIGN KEY (`college_id`) REFERENCES `colleges` (`college_id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 16 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '专业表（含学制、学位类型等扩展信息）' ROW_FORMAT = DYNAMIC;
 
--- ----------------------------
--- Records of majors
--- ----------------------------
-INSERT INTO `majors` VALUES (1, 1, '计算机科学与技术', 'CS', 4, 'bachelor', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `majors` VALUES (2, 1, '软件工程', 'SE', 4, 'bachelor', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `majors` VALUES (3, 1, '人工智能', 'AI', 4, 'bachelor', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `majors` VALUES (4, 2, '机械设计制造及其自动化', 'ME', 4, 'bachelor', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `majors` VALUES (5, 2, '机器人工程', 'RE', 4, 'bachelor', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `majors` VALUES (6, 3, '会计学', 'ACCT', 4, 'bachelor', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `majors` VALUES (7, 3, '工商管理', 'MBA_PREP', 4, 'bachelor', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `majors` VALUES (8, 4, '英语', 'ENG', 4, 'bachelor', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `majors` VALUES (9, 5, '应用数学', 'MATH', 4, 'bachelor', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `majors` VALUES (10, 6, '汉语言文学', 'CHINESE', 4, 'bachelor', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `majors` VALUES (11, 7, '视觉传达设计', 'DESIGN', 4, 'bachelor', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `majors` VALUES (12, 8, '建筑学', 'ARCH', 5, 'bachelor', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `majors` VALUES (13, 9, '临床医学', 'MED', 5, 'bachelor', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `majors` VALUES (14, 10, '计算机应用技术', 'CS_APPLIED', 3, 'bachelor', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `majors` VALUES (15, 1, '信息安全', 'INFOSEC', 4, 'master', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-
--- ----------------------------
--- Table structure for midterm_checks
--- ----------------------------
 DROP TABLE IF EXISTS `midterm_checks`;
 CREATE TABLE `midterm_checks`  (
   `check_id` int NOT NULL AUTO_INCREMENT COMMENT '检查记录唯一ID',
@@ -309,18 +198,6 @@ CREATE TABLE `midterm_checks`  (
   CONSTRAINT `fk_mc_selection` FOREIGN KEY (`selection_id`) REFERENCES `student_selections` (`selection_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 11 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '中期检查表【增强版】（含显式version、progress进度、5种状态、清晰版本追踪）' ROW_FORMAT = DYNAMIC;
 
--- ----------------------------
--- Records of midterm_checks
--- ----------------------------
-INSERT INTO `midterm_checks` VALUES (1, 1, 1, '2026-04-10 14:00:00', 1, 1, 40, 'approved', 6, '2026-04-12 09:00:00', '进度正常（40%），需求分析和数据库设计已完成，建议加快后端开发节奏', 17, '2026-06-04 16:36:48', '2026-06-04 16:36:48');
-INSERT INTO `midterm_checks` VALUES (2, 2, 2, '2026-04-11 10:30:00', 1, 1, 55, 'approved', 7, '2026-04-13 14:00:00', '进度良好（55%），前端框架搭建完毕，核心功能已实现60%，继续保持', 19, '2026-06-04 16:36:48', '2026-06-04 16:36:48');
-INSERT INTO `midterm_checks` VALUES (3, 3, 3, '2026-04-12 16:00:00', 1, 1, 35, 'approved', 8, '2026-04-14 10:30:00', '进度稍慢（35%），硬件采购延迟导致，需后续追赶进度', 20, '2026-06-04 16:36:48', '2026-06-04 16:36:48');
-INSERT INTO `midterm_checks` VALUES (4, 4, 4, '2026-04-13 09:00:00', 1, 1, 48, 'approved', 6, '2026-04-15 11:00:00', '进度正常（48%），响应式布局改造进展顺利', 21, '2026-06-04 16:36:48', '2026-06-04 16:36:48');
-INSERT INTO `midterm_checks` VALUES (5, 5, 5, '2026-04-14 15:00:00', 1, 1, 62, 'approved', 9, '2026-04-16 09:30:00', '进度超前（62%）！文献综述质量高，案例数据充实，论文写作已启动', 22, '2026-06-04 16:36:48', '2026-06-04 16:36:48');
-INSERT INTO `midterm_checks` VALUES (6, 6, 6, '2026-04-15 11:00:00', 1, 1, 50, 'approved', 13, '2026-04-17 14:00:00', '进度正常（50%），WebRTC信令服务器搭建完成，P2P连接测试通过', 23, '2026-06-04 16:36:48', '2026-06-04 16:36:48');
-INSERT INTO `midterm_checks` VALUES (7, 7, 7, '2026-04-16 10:00:00', 1, 1, 25, 'rejected', 11, '2026-04-18 09:00:00', '进度严重滞后（仅25%）：1) 文献综述未完成；2) 缺乏实证数据；3) 研究方法不明确。要求两周内重新提交并补充材料', 24, '2026-06-04 16:36:53', '2026-06-04 16:36:53');
-INSERT INTO `midterm_checks` VALUES (8, 8, 8, '2026-04-17 14:00:00', 2, 1, 42, 'rejected', 11, '2026-04-19 10:00:00', '版本2仍有问题：进度提升至42%但未达预期；参考文献格式不规范；实验设计部分缺失。请参照评审意见修改', 24, '2026-06-04 16:36:53', '2026-06-04 16:36:53');
-INSERT INTO `midterm_checks` VALUES (9, 9, 9, '2026-04-18 09:30:00', 1, 1, 30, 'rejected', 10, '2026-04-20 11:00:00', '进度偏慢（30%）：问卷样本量不足（仅50份）；缺乏数据分析图表；理论框架薄弱。建议扩大调研范围并加强文献阅读', 25, '2026-06-04 16:36:53', '2026-06-04 16:36:53');
 
 -- ----------------------------
 -- Table structure for notifications
@@ -353,30 +230,6 @@ CREATE TABLE `notifications`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 21 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '消息通知表【改造为公告模式】（支持草稿/发布/撤回状态、发布人、全员广播、业务关联跳转）' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of notifications
--- ----------------------------
-INSERT INTO `notifications` VALUES (1, NULL, 1, '关于2026届毕业设计选题的通知', '各位同学请注意：2026届毕业设计选题将于3月15日24:00截止。请尚未选题的同学抓紧时间联系指导老师确认题目。已选题但状态为pending的同学请关注审核进度。', 0, NULL, 'published', '2026-03-01 09:00:00', 'notice', NULL, 'high', 'business', '2026-03-01 09:00:00');
-INSERT INTO `notifications` VALUES (2, NULL, 1, '中期检查材料提交提醒', '请所有同学于4月20日前提交中期检查报告（PDF格式）。报告应包含：已完成工作总结（30%）、当前进度说明（40%）、存在问题及解决方案（20%）、后续计划（10%）。逾期将影响最终成绩评定。', 0, NULL, 'published', '2026-04-01 08:00:00', 'notice', NULL, 'urgent', 'reminder', '2026-04-01 08:00:00');
-INSERT INTO `notifications` VALUES (3, NULL, 2, '答辩时间安排公告', '2026届毕业设计答辩时间定于6月1日至6月10日进行。具体安排如下：计科专业6月1-3日；软工专业6月4-6日；其他专业6月7-10日。答辩地点：教学楼A栋301-305教室。请提前准备好PPT和答辩材料。', 0, NULL, 'published', '2026-05-25 16:00:00', 'notice', NULL, 'high', 'business', '2026-05-25 16:00:00');
-INSERT INTO `notifications` VALUES (4, NULL, 1, '系统维护通知', '本系统将于6月15日22:00-次日06:00进行升级维护，届时将暂停服务。请各位师生提前保存好正在编辑的内容，避免数据丢失。', 0, NULL, 'published', '2026-06-10 18:00:00', 'notice', NULL, 'normal', 'system', '2026-06-10 18:00:00');
-INSERT INTO `notifications` VALUES (5, 14, 6, '你的选题已通过审核', '恭喜！你选择的题目\"基于Spring Boot的顶岗实习管理系统\"已被王指导老师通过审核。请及时查看任务书并确认接收。', 0, '2026-03-10 10:05:00', 'published', '2026-03-10 10:10:00', 'selection', 1, 'normal', 'business', '2026-03-10 10:10:00');
-INSERT INTO `notifications` VALUES (6, 14, 6, '任务书已下达', '你的任务书已由王指导老师下达，截止日期为2026年4月15日。请登录系统查看详细要求和技术参数，并在收到后24小时内确认接收。', 0, '2026-03-15 08:35:00', 'published', '2026-03-15 08:40:00', 'task_book', 1, 'normal', 'business', '2026-03-15 08:40:00');
-INSERT INTO `notifications` VALUES (7, 14, 6, '中期检查通过通知', '你的中期报告已通过审核（进度40%）。评语：需求分析和数据库设计已完成，建议加快后端开发节奏。请继续推进项目进度，准备最终报告。', 0, '2026-04-12 09:05:00', 'published', '2026-04-12 09:10:00', 'midterm_check', 1, 'normal', 'business', '2026-04-12 09:10:00');
-INSERT INTO `notifications` VALUES (8, 15, 7, '中期报告需修改提醒', '你的中期报告v1被驳回。原因：进度严重滞后（仅25%）；缺乏实证数据；研究方法不明确。请在一周内重新提交完整版。如有疑问请联系赵指导老师。', 0, '2026-04-18 09:05:00', 'published', '2026-04-18 09:10:00', 'midterm_check', 7, 'urgent', 'reminder', '2026-04-18 09:10:00');
-INSERT INTO `notifications` VALUES (9, 19, 9, '最终检查通过 - 成绩优秀！', '恭喜！你的最终报告以90分的高分通过审核并被定为最终定稿版。教师评语：论文质量优秀，文献综述全面，案例调研深入，结论具有实践指导价值。', 0, '2026-05-26 10:05:00', 'published', '2026-05-26 10:10:00', 'final_check', 5, 'high', 'business', '2026-05-26 10:10:00');
-INSERT INTO `notifications` VALUES (10, 17, 6, '答辩成绩查询', '你的答辩已结束，成绩等级：良好（85分）。详细评语见答辩记录单。总成绩计算中，预计一周内公布。', 0, '2026-06-06 09:05:00', 'published', '2026-06-06 09:10:00', 'defense', 1, 'normal', 'business', '2026-06-06 09:10:00');
-INSERT INTO `notifications` VALUES (11, 15, 7, '任务书驳回通知', '你收到的任务书v2被刘院副驳回。原因：deadline时间不合理；tech_params缺少样本量说明。请参照模板调整后重新提交。', 0, '2026-03-20 11:05:00', 'published', '2026-03-20 11:10:00', 'task_book', 7, 'urgent', 'reminder', '2026-03-20 11:10:00');
-INSERT INTO `notifications` VALUES (12, 22, 13, '签到异常提醒', '检测到你在3月6日的签到记录为缺勤（absent）。如确有特殊情况请在3日内提交补签申请并提供证明材料。连续缺勤超过3次将影响毕设成绩。', 0, '2026-03-07 08:00:00', 'published', '2026-03-07 08:05:00', 'sign_in', 22, 'high', 'reminder', '2026-03-07 08:05:00');
-INSERT INTO `notifications` VALUES (13, NULL, 1, '【草稿】成绩公布时间预告', '各专业成绩将于6月15日前陆续公布，请同学们耐心等待。', 0, NULL, 'draft', NULL, 'score', NULL, 'low', 'business', '2026-06-12 14:00:00');
-INSERT INTO `notifications` VALUES (14, 14, 6, '【草稿】个性化学习资源推荐', '根据你的选题方向（Spring Boot），推荐以下学习资源：1) Spring Boot实战 2) 微服务架构设计模式 3) 分布式系统原理。', 0, NULL, 'draft', NULL, 'other', 1, 'low', 'system', '2026-04-15 16:00:00');
-INSERT INTO `notifications` VALUES (15, NULL, 1, '【已撤回】原定于6月1日的系统升级推迟', '因技术原因，原定于6月1日的系统升级推迟至6月15日进行。', 0, '2026-05-28 10:00:00', 'revoked', '2026-05-28 09:00:00', 'notice', NULL, 'normal', 'system', '2026-05-28 09:00:00');
-INSERT INTO `notifications` VALUES (16, NULL, 2, '【已撤回】端午节放假安排更正', '经核实，端午节期间系统正常运行，无需暂停服务。此前发布的维护通知作废。', 0, '2026-06-05 14:00:00', 'revoked', '2026-06-05 13:00:00', 'notice', NULL, 'normal', 'system', '2026-06-05 13:00:00');
-INSERT INTO `notifications` VALUES (17, 18, 7, '选题待审核提醒', '你提交的自拟题目\"强化学习在游戏AI中的实践\"正在等待赵指导老师审核，请耐心等待或主动联系导师询问进度。', 0, NULL, 'published', '2026-03-13 09:00:00', 'selection', 9, 'normal', 'reminder', '2026-03-13 09:00:00');
-INSERT INTO `notifications` VALUES (18, 21, 10, '最终报告需修改', '你的最终报告被周指导老师驳回（55分）。原因：缺少系统测试章节；性能测试数据缺失；部署文档未提供。请补充后重新提交。', 0, '2026-05-30 11:05:00', 'published', '2026-05-30 11:10:00', 'final_check', 10, 'urgent', 'reminder', '2026-05-30 11:10:00');
-INSERT INTO `notifications` VALUES (19, 15, 11, '答辩材料不合格', '你提交的答辩材料被驳回。原因：格式错误；缺少签字页；PPT页数过多。修改后请重新提交。', 0, '2026-06-10 09:05:00', 'published', '2026-06-10 09:10:00', 'defense', 7, 'urgent', 'reminder', '2026-06-10 09:10:00');
-INSERT INTO `notifications` VALUES (20, 23, 13, '欢迎加入2026届毕设', '新生你好！欢迎加入2026届毕业设计管理系统。请先完成账号激活（绑定手机号），然后等待管理员分配指导老师和批次信息。', 0, NULL, 'published', '2026-03-20 10:00:00', 'welcome', NULL, 'normal', 'system', '2026-03-20 10:00:00');
-
--- ----------------------------
 -- Table structure for operation_logs
 -- ----------------------------
 DROP TABLE IF EXISTS `operation_logs`;
@@ -405,31 +258,6 @@ CREATE TABLE `operation_logs`  (
   CONSTRAINT `fk_log_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 21 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '操作日志表（AOP自动记录，JSON格式存储变更详情，支持安全审计）' ROW_FORMAT = DYNAMIC;
 
--- ----------------------------
--- Records of operation_logs
--- ----------------------------
-INSERT INTO `operation_logs` VALUES (1, 6, 'teacher', 'approve_selection', 'selection', 1, '{\"after\": {\"status\": \"approved\"}, \"before\": {\"status\": \"pending\"}, \"changes\": [\"status: pending→approved\"]}', '192.168.1.100', '/api/selections/1/review', 'PUT', 'Mozilla/5.0 (Windows NT 10.0)', 'success', NULL, '2026-06-04 16:38:09');
-INSERT INTO `operation_logs` VALUES (2, 7, 'teacher', 'approve_selection', 'selection', 2, '{\"after\": {\"status\": \"approved\"}, \"before\": {\"status\": \"pending\"}}', '192.168.1.200', '/api/selections/2/review', 'PUT', 'Chrome/120.0', 'success', NULL, '2026-06-04 16:38:09');
-INSERT INTO `operation_logs` VALUES (3, 6, 'teacher', 'reject_selection', 'selection', 12, '{\"after\": {\"status\": \"rejected\"}, \"before\": {\"status\": \"pending\"}, \"reason\": \"深度学习题目难度过高\"}', '192.168.1.100', '/api/selections/12/review', 'PUT', 'Firefox/121.0', 'success', NULL, '2026-06-04 16:38:09');
-INSERT INTO `operation_logs` VALUES (4, 14, 'student', 'submit_selection', 'selection', 9, '{\"type\": \"library\", \"topic_id\": 12}', '192.168.1.104', '/api/selections', 'POST', 'Mobile Safari', 'success', NULL, '2026-06-04 16:38:09');
-INSERT INTO `operation_logs` VALUES (5, 3, 'major_admin', 'cancel_selection', 'selection', 14, '{\"reason\": \"学生主动撤销\"}', '10.0.1.10', '/api/selections/14/cancel', 'POST', 'Postman Runtime', 'success', NULL, '2026-06-04 16:38:09');
-INSERT INTO `operation_logs` VALUES (6, 6, 'teacher', 'issue_taskbook', 'task_book', 1, '{\"status\": \"issued\", \"version\": 1, \"deadline\": \"2026-04-15\"}', '192.168.1.100', '/api/taskbooks', 'POST', 'Mozilla/5.0', 'success', NULL, '2026-06-04 16:38:09');
-INSERT INTO `operation_logs` VALUES (7, 14, 'student', 'confirm_taskbook', 'task_book', 1, '{\"task_id\": 1, \"confirmed_at\": \"2026-03-16 09:00:00\"}', '192.168.1.103', '/api/taskbooks/1/confirm', 'PUT', 'Mobile Safari', 'success', NULL, '2026-06-04 16:38:09');
-INSERT INTO `operation_logs` VALUES (8, 11, 'college_admin', 'reject_taskbook', 'task_book', 7, '{\"reason\": \"参考文献过旧\", \"version\": 1}', '10.0.1.1', '/api/taskbooks/7/reject', 'POST', 'Postman Runtime', 'success', NULL, '2026-06-04 16:38:09');
-INSERT INTO `operation_logs` VALUES (9, 11, 'college_admin', 'reject_taskbook', 'task_book', 8, '{\"reason\": \"deadline不合理\", \"version\": 2}', '10.0.1.1', '/api/taskbooks/8/reject', 'POST', 'Postman Runtime', 'success', NULL, '2026-06-04 16:38:09');
-INSERT INTO `operation_logs` VALUES (10, 6, 'teacher', 'approve_midterm', 'midterm_check', 1, '{\"status\": \"approved\", \"progress\": 40}', '192.168.1.100', '/api/midterm-checks/1/review', 'PUT', 'Mozilla/5.0', 'success', NULL, '2026-06-04 16:38:09');
-INSERT INTO `operation_logs` VALUES (11, 11, 'teacher', 'reject_midterm', 'midterm_check', 7, '{\"reason\": \"进度严重滞后\", \"progress\": 25}', '192.168.1.101', '/api/midterm-checks/7/review', 'PUT', 'Chrome/120.0', 'success', NULL, '2026-06-04 16:38:09');
-INSERT INTO `operation_logs` VALUES (12, 6, 'teacher', 'approve_final', 'final_check', 1, '{\"score\": 88, \"is_final\": 1}', '192.168.1.100', '/api/final-checks/1/review', 'PUT', 'Mozilla/5.0', 'success', NULL, '2026-06-04 16:38:09');
-INSERT INTO `operation_logs` VALUES (13, 11, 'teacher', 'reject_final', 'final_check', 9, '{\"score\": 65, \"reason\": \"实验部分缺失\"}', '192.168.1.101', '/api/final-checks/9/review', 'PUT', 'Chrome/120.0', 'success', NULL, '2026-06-04 16:38:09');
-INSERT INTO `operation_logs` VALUES (14, 6, 'teacher', 'approve_defense', 'defense', 1, '{\"score\": \"good\", \"score_num\": 85}', '192.168.1.100', '/api/defenses/1/review', 'PUT', 'Mozilla/5.0', 'success', NULL, '2026-06-04 16:38:09');
-INSERT INTO `operation_logs` VALUES (15, 11, 'teacher', 'reject_defense', 'defense', 9, '{\"reason\": \"材料不合格\"}', '192.168.1.101', '/api/defenses/9/review', 'PUT', 'Chrome/120.0', 'success', NULL, '2026-06-04 16:38:09');
-INSERT INTO `operation_logs` VALUES (16, 14, 'student', 'submit_defense_record', 'defense', 6, '{\"file_id\": 17}', '192.168.1.104', '/api/defenses/6/submit', 'POST', 'Mobile Safari', 'success', NULL, '2026-06-04 16:38:09');
-INSERT INTO `operation_logs` VALUES (17, 3, 'major_admin', 'create_batch', 'batch', 1, '{\"status\": \"active\", \"batch_name\": \"2026届计科毕设\"}', '10.0.1.10', '/api/batches', 'POST', 'Postman Runtime', 'success', NULL, '2026-06-04 16:38:09');
-INSERT INTO `operation_logs` VALUES (18, 1, 'college_admin', 'publish_score', 'score', 1, '{\"is_published\": 1, \"published_by\": 1}', '10.0.1.1', '/api/scores/1/publish', 'PUT', 'Postman Runtime', 'success', NULL, '2026-06-04 16:38:09');
-INSERT INTO `operation_logs` VALUES (19, 1, 'college_admin', 'reset_topic_status', 'topic', 5, '{\"new_status\": \"available\", \"old_status\": \"unavailable\"}', '10.0.1.1', '/api/topics/5/reset', 'POST', 'Postman Runtime', 'success', NULL, '2026-06-04 16:38:09');
-INSERT INTO `operation_logs` VALUES (20, 2, 'college_admin', 'lock_user_account', 'user', 25, '{\"reason\": \"多次密码错误\", \"locked_hours\": 24}', '10.0.1.1', '/api/users/25/lock', 'POST', 'Postman Runtime', 'success', NULL, '2026-06-04 16:38:09');
-
--- ----------------------------
 -- Table structure for project_batches
 -- ----------------------------
 DROP TABLE IF EXISTS `project_batches`;
@@ -463,17 +291,6 @@ CREATE TABLE `project_batches`  (
   CONSTRAINT `fk_batch_major` FOREIGN KEY (`major_id`) REFERENCES `majors` (`major_id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 9 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '毕设批次表【增强版】（含状态机、权重配置、学期、阶段管理、时间审计）' ROW_FORMAT = DYNAMIC;
 
--- ----------------------------
--- Records of project_batches
--- ----------------------------
-INSERT INTO `project_batches` VALUES (1, 1, '2026届计算机科学与技术毕业设计', '2026-CS-BT', '2025-2026学年第1学期', '2026-03-01', '2026-06-30', 0.40, 0.60, 'active', 'midterm', '计科专业2026届毕设，当前进行中期检查阶段', 3, '2026-03-01 08:00:00', NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `project_batches` VALUES (2, 2, '2026届软件工程毕业设计', '2026-SE-BT', '2025-2026学年第1学期', '2026-03-01', '2026-06-30', 0.40, 0.60, 'active', 'selection', '软工专业2026届，正在选题阶段', 3, '2026-03-05 09:00:00', NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `project_batches` VALUES (3, 4, '2026届机械设计毕业设计', '2026-ME-BT', '2025-2026学年第1学期', '2026-03-10', '2026-07-15', 0.35, 0.65, 'active', 'taskbook', '机械专业，任务书下达阶段', 4, '2026-03-10 10:00:00', NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `project_batches` VALUES (4, 6, '2026届会计学毕业设计', '2026-ACCT-BT', '2025-2026学年第1学期', '2026-03-15', '2026-06-30', 0.40, 0.60, 'active', 'final', '会计专业，最终检查阶段', 5, '2026-03-15 09:30:00', NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `project_batches` VALUES (5, 8, '2026届英语专业毕业设计', '2026-ENG-BT', '2025-2026学年第1学期', '2026-04-01', '2026-07-31', 0.30, 0.70, 'draft', NULL, '英语专业，草稿未发布', 1, NULL, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `project_batches` VALUES (6, 9, '2026届数学专业毕业设计', '2026-MATH-BT', '2025-2026学年第1学期', '2026-04-01', '2026-06-30', 0.45, 0.55, 'finished', 'finished', '数学专业已结束', 1, '2026-04-01 08:00:00', '2026-06-30 18:00:00', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `project_batches` VALUES (7, 11, '2026届视觉传达设计毕业设计', '2026-DESIGN-BT', '2025-2026学年第1学期', '2026-03-20', '2026-07-15', 0.35, 0.65, 'active', 'defense', '设计专业，答辩阶段', 13, '2026-03-20 10:00:00', NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `project_batches` VALUES (8, 3, '2026届人工智能毕业设计', '2026-AI-BT', '2025-2026学年第1学期', '2026-03-01', '2026-06-30', 0.40, 0.60, 'active', 'preparation', 'AI专业，准备阶段尚未开始选题', 3, '2026-02-28 16:00:00', NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
 
 -- ----------------------------
 -- Table structure for roles
@@ -491,15 +308,6 @@ CREATE TABLE `roles`  (
   UNIQUE INDEX `uk_role_code`(`role_code` ASC) USING BTREE COMMENT '角色编码唯一'
 ) ENGINE = InnoDB AUTO_INCREMENT = 7 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '角色权限表（支持细粒度权限控制）' ROW_FORMAT = DYNAMIC;
 
--- ----------------------------
--- Records of roles
--- ----------------------------
-INSERT INTO `roles` VALUES (1, 'college_admin', '院级管理员', '[\"batch:manage\", \"progress:view\", \"sign:export\", \"reset:topic\", \"user:manage\", \"score:publish\"]', '全院最高权限，可管理所有业务', 1, '2026-06-04 15:25:21');
-INSERT INTO `roles` VALUES (2, 'major_admin', '专业负责人', '[\"topic:manage\", \"batch:manage\", \"relation:adjust\", \"progress:view\", \"topic:include\"]', '负责本专业的题库、师生、进度管理', 2, '2026-06-04 15:25:21');
-INSERT INTO `roles` VALUES (3, 'teacher', '指导教师', '[\"topic:create_own\", \"selection:review\", \"taskbook:issue\", \"report:review\", \"defense:score\", \"sign:view_own\"]', '指导学生完成毕设全过程', 3, '2026-06-04 15:25:21');
-INSERT INTO `roles` VALUES (4, 'student', '学生', '[\"selection:submit\", \"report:upload\", \"sign:checkin\", \"defense:view\"]', '提交选题、报告、签到，查看成绩通知', 4, '2026-06-04 15:25:21');
-INSERT INTO `roles` VALUES (5, 'auditor', '教学督导', '[\"progress:view_all\", \"report:audit\", \"defense:observe\"]', '监督教学质量，可查看但不能修改', 5, '2026-06-04 15:25:21');
-INSERT INTO `roles` VALUES (6, 'system_admin', '系统管理员', '[\"system:config\", \"user:manage_all\", \"log:view\", \"backup:manage\"]', '系统运维和技术支持', 6, '2026-06-04 15:25:21');
 
 -- ----------------------------
 -- Table structure for sign_ins
@@ -533,17 +341,6 @@ CREATE TABLE `sign_ins`  (
   CONSTRAINT `fk_sign_student` FOREIGN KEY (`student_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 13 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '每日签到表【增强版】（含地点、签退、时长计算、日报、补签、考勤状态）' ROW_FORMAT = DYNAMIC;
 
--- ----------------------------
--- Records of sign_ins
--- ----------------------------
-INSERT INTO `sign_ins` VALUES (1, 14, 1, '2026-03-01', '08:30:00', '教学楼A301', '搭建开发环境，配置MySQL和Node.js', 0, NULL, 'normal', '17:30:00', 540, '192.168.1.100', 'Mozilla/5.0 (Windows NT 10.0)', '2026-06-04 16:35:11');
-INSERT INTO `sign_ins` VALUES (2, 14, 1, '2026-03-02', '08:35:00', '教学楼A301', '完成需求分析初稿，绘制用例图', 0, NULL, 'normal', '18:00:00', 565, '192.168.1.100', 'Mozilla/5.0 (Windows NT 10.0)', '2026-06-04 16:35:11');
-INSERT INTO `sign_ins` VALUES (3, 14, 1, '2026-03-03', '08:40:00', '实验室B205', '学习Vue3 Composition API和响应式原理', 0, NULL, 'normal', '17:45:00', 545, '192.168.1.101', 'Mozilla/5.0 (Macintosh)', '2026-06-04 16:35:11');
-INSERT INTO `sign_ins` VALUES (4, 14, 1, '2026-03-04', '09:10:00', '教学楼A301', '实现用户管理模块RESTful API', 0, NULL, 'late', '18:20:00', 550, '192.168.1.100', 'Mozilla/5.0 (Windows NT 10.0)', '2026-06-04 16:35:11');
-INSERT INTO `sign_ins` VALUES (5, 14, 1, '2026-03-05', '08:30:00', '教学楼A301', '编写单元测试用例，测试覆盖率60%', 1, '网络故障无法访问系统', 'normal', '18:00:00', 570, '192.168.1.100', 'Mozilla/5.0 (Windows NT 10.0)', '2026-06-04 16:35:11');
-INSERT INTO `sign_ins` VALUES (6, 14, 1, '2026-03-06', '12:00:00', NULL, NULL, 1, '忘记带手机无法定位', 'absent', NULL, NULL, '192.168.1.100', 'Mozilla/5.0', '2026-06-04 16:35:11');
-INSERT INTO `sign_ins` VALUES (7, 14, 1, '2026-03-07', '08:28:00', '图书馆研讨室', '与导师讨论技术选型方案', 0, NULL, 'normal', '16:45:00', 497, '192.168.1.102', 'Mozilla/5.0 (Linux)', '2026-06-04 16:35:11');
-INSERT INTO `sign_ins` VALUES (8, 14, 1, '2026-03-08', '08:32:00', '教学楼A301', '完成数据库ER图设计，创建表结构', 0, NULL, 'normal', '17:50:00', 558, '192.168.1.100', 'Mozilla/5.0 (Windows NT 10.0)', '2026-06-04 16:35:11');
 
 -- ----------------------------
 -- Table structure for student_selections
@@ -579,24 +376,6 @@ CREATE TABLE `student_selections`  (
   CONSTRAINT `fk_sel_topic` FOREIGN KEY (`topic_id`) REFERENCES `topics` (`topic_id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 16 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '学生选题表（版本链式管理，支持驳回重提、历史追溯）' ROW_FORMAT = DYNAMIC;
 
--- ----------------------------
--- Records of student_selections
--- ----------------------------
-INSERT INTO `student_selections` VALUES (1, 1, 14, 1, 'library', NULL, NULL, 1, NULL, 'approved', 6, '2026-03-10 10:00:00', '选题符合毕设方向，同意通过', '2026-06-04 15:48:04', '2026-06-04 15:48:04');
-INSERT INTO `student_selections` VALUES (2, 2, 15, 2, 'library', NULL, NULL, 1, NULL, 'approved', 7, '2026-03-11 09:30:00', 'Vue3技术栈合理，批准', '2026-06-04 15:48:04', '2026-06-04 15:48:04');
-INSERT INTO `student_selections` VALUES (3, 3, 16, 15, 'library', NULL, NULL, 1, NULL, 'approved', 8, '2026-03-12 14:00:00', '嵌入式项目难度适中，同意', '2026-06-04 15:48:04', '2026-06-04 15:48:04');
-INSERT INTO `student_selections` VALUES (4, 4, 17, 4, 'library', NULL, NULL, 1, NULL, 'approved', 6, '2026-03-13 11:00:00', '移动端适配有价值，通过', '2026-06-04 15:48:04', '2026-06-04 15:48:04');
-INSERT INTO `student_selections` VALUES (5, 7, 19, 21, 'library', NULL, NULL, 1, NULL, 'approved', 9, '2026-03-14 15:30:00', '管理学视角新颖，同意', '2026-06-04 15:48:04', '2026-06-04 15:48:04');
-INSERT INTO `student_selections` VALUES (6, 8, 20, 22, 'library', NULL, NULL, 1, NULL, 'approved', 11, '2026-03-15 10:00:00', '英语教学研究方向可行', '2026-06-04 15:48:04', '2026-06-04 15:48:04');
-INSERT INTO `student_selections` VALUES (7, 3, 22, 7, 'library', NULL, NULL, 1, NULL, 'approved', 13, '2026-03-16 09:00:00', '直播平台有实际应用价值', '2026-06-04 15:48:04', '2026-06-04 15:48:04');
-INSERT INTO `student_selections` VALUES (8, 4, 24, 9, 'self', '基于Flutter的校园导航系统', '使用Flutter开发跨平台校园地图应用', 1, NULL, 'approved', 10, '2026-03-17 14:30:00', '自拟题目切合实际，批准', '2026-06-04 15:48:04', '2026-06-04 15:48:04');
-INSERT INTO `student_selections` VALUES (9, 1, 18, 12, 'library', NULL, NULL, 1, NULL, 'pending', NULL, NULL, NULL, '2026-06-04 15:48:08', '2026-06-04 15:48:08');
-INSERT INTO `student_selections` VALUES (10, 8, 23, 20, 'self', '大数据隐私保护技术研究', '分析联邦学习和差分隐私在医疗数据中的应用', 1, NULL, 'pending', NULL, NULL, NULL, '2026-06-04 15:48:08', '2026-06-04 15:48:08');
-INSERT INTO `student_selections` VALUES (11, 2, 25, 6, 'library', NULL, NULL, 1, NULL, 'pending', NULL, NULL, NULL, '2026-06-04 15:48:08', '2026-06-04 15:48:08');
-INSERT INTO `student_selections` VALUES (12, 1, 14, 10, 'library', NULL, NULL, 2, 11, 'rejected', 6, '2026-03-08 16:00:00', '深度学习题目难度过高，建议选择工程型题目', '2026-06-04 15:48:10', '2026-06-04 15:48:10');
-INSERT INTO `student_selections` VALUES (13, 2, 15, 14, 'library', NULL, NULL, 2, 12, 'rejected', 7, '2026-03-09 11:00:00', '区块链方向与你的技术栈不匹配，建议重新选题', '2026-06-04 15:48:10', '2026-06-04 15:48:10');
-INSERT INTO `student_selections` VALUES (14, 1, 21, 3, 'library', NULL, NULL, 1, NULL, 'cancelled', NULL, NULL, '学生主动撤销选题', '2026-06-04 16:03:00', '2026-06-04 16:03:00');
-INSERT INTO `student_selections` VALUES (15, 3, 16, 17, 'library', NULL, NULL, 2, 3, 'cancelled', NULL, NULL, '管理员重置该选题（原选题ID=3已取消，此为新版本）', '2026-06-04 16:03:00', '2026-06-04 16:03:00');
 
 -- ----------------------------
 -- Table structure for system_configs
@@ -617,28 +396,6 @@ CREATE TABLE `system_configs`  (
   CONSTRAINT `fk_config_updated_by` FOREIGN KEY (`updated_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 16 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '系统配置表【增强版】（支持多类型配置、JSON复杂结构、热更新）' ROW_FORMAT = DYNAMIC;
 
--- ----------------------------
--- Records of system_configs
--- ----------------------------
-INSERT INTO `system_configs` VALUES (1, 'max_makeup_days', '3', 'int', '最大补签天数（超过此天数不允许补签）', NULL, '2026-06-04 16:38:09');
-INSERT INTO `system_configs` VALUES (2, 'upload_file_size_limit', '10485760', 'int', '文件上传大小限制（10MB）', NULL, '2026-06-04 16:38:09');
-INSERT INTO `system_configs` VALUES (3, 'default_defense_ratio', '0.40', 'decimal', '默认答辩成绩占总成绩比例（40%）', NULL, '2026-06-04 16:38:09');
-INSERT INTO `system_configs` VALUES (4, 'default_report_ratio', '0.60', 'decimal', '默认报告成绩占总成绩比例（60%）', NULL, '2026-06-04 16:38:09');
-INSERT INTO `system_configs` VALUES (5, 'defense_score_map', '{\"excellent\":95,\"good\":85,\"medium\":75,\"pass\":65,\"fail\":50}', 'json', '五级制等级对应的数值分数映射表', NULL, '2026-06-04 16:38:09');
-INSERT INTO `system_configs` VALUES (6, 'grade_level_map', '{\"A\":[90,100],\"B\":[80,89],\"C\":[70,79],\"D\":[60,69],\"F\":[0,59]}', 'json', '数值分数与字母等级的对应规则（闭区间）', NULL, '2026-06-04 16:38:09');
-INSERT INTO `system_configs` VALUES (7, 'system_name', '毕业设计管理系统', 'string', '系统显示名称（用于页面标题和邮件抬头）', 1, '2026-06-04 16:38:09');
-INSERT INTO `system_configs` VALUES (8, 'enable_email_notification', 'true', 'boolean', '是否启用邮件通知功能（true=启用，false=关闭）', 1, '2026-06-04 16:38:09');
-INSERT INTO `system_configs` VALUES (9, 'sign_in_time_range_start', '08:00', 'string', '签到开始时间（早于此时间签到的记录标记为normal）', 1, '2026-06-04 16:38:09');
-INSERT INTO `system_configs` VALUES (10, 'sign_in_time_range_end', '09:00', 'string', '签到截止时间（晚于此时间签到的记录标记为late）', 1, '2026-06-04 16:38:09');
-INSERT INTO `system_configs` VALUES (11, 'max_login_attempts', '5', 'int', '最大连续登录失败次数（超过后锁定账户）', 6, '2026-06-04 16:38:09');
-INSERT INTO `system_configs` VALUES (12, 'account_lock_duration_hours', '24', 'int', '账户锁定时长（小时）', 6, '2026-06-04 16:38:09');
-INSERT INTO `system_configs` VALUES (13, 'midterm_progress_threshold', '30', 'int', '中期检查最低进度要求（低于此值将被驳回，单位：%）', 2, '2026-06-04 16:38:09');
-INSERT INTO `system_configs` VALUES (14, 'final_report_min_score', '60', 'int', '最终报告最低及格分数（低于此值不通过）', 2, '2026-06-04 16:38:09');
-INSERT INTO `system_configs` VALUES (15, 'defense_ppt_max_pages', '30', 'int', '答辩PPT最大页数限制（超过将驳回）', 2, '2026-06-04 16:38:09');
-
--- ----------------------------
--- Table structure for task_books
--- ----------------------------
 DROP TABLE IF EXISTS `task_books`;
 CREATE TABLE `task_books`  (
   `task_id` int NOT NULL AUTO_INCREMENT COMMENT '任务书唯一ID',
@@ -672,22 +429,6 @@ CREATE TABLE `task_books`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 13 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '任务书表【增强版】（结构化内容、版本化下达、学生确认、驳回流程）' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of task_books
--- ----------------------------
-INSERT INTO `task_books` VALUES (1, 1, '1.需求分析与系统设计\n2.后端API开发\n3.前端界面实现\n4.数据库设计与优化\n5.测试与部署上线', '2026-04-15', 1, '[{\"id\": 1, \"text\": \"完成需求分析\"}, {\"id\": 2, \"text\": \"设计数据库结构\"}, {\"id\": 3, \"text\": \"实现核心模块\"}]', '[{\"name\": \"前端\", \"value\": \"Vue3 + Element Plus\"}, {\"name\": \"后端\", \"value\": \"Spring Boot\"}, {\"name\": \"数据库\", \"value\": \"MySQL 8.0\"}]', '[1] Vue.js官方文档 https://cn.vuejs.org/\n[2] Spring Boot文档', 'issued', 6, '2026-03-15 08:00:00', 14, '2026-03-16 09:00:00', NULL, NULL, NULL, '2026-06-04 16:15:47', '2026-06-04 16:15:47');
-INSERT INTO `task_books` VALUES (2, 2, '1.Vue3组件化开发\n2.Element Plus UI集成\n3.在线考试核心逻辑\n4.自动阅卷算法\n5.性能优化与部署', '2026-04-20', 1, '[{\"id\": 1, \"text\": \"完成考试模块设计\"}, {\"id\": 2, \"text\": \"实现题库管理\"}, {\"id\": 3, \"text\": \"开发阅卷功能\"}]', '[{\"name\": \"前端框架\", \"value\": \"Vue 3 + TypeScript\"}, {\"name\": \"UI库\", \"value\": \"Element Plus\"}, {\"name\": \"构建工具\", \"value\": \"Vite\"}]', '[1] Vue.js设计与实现 [2] TypeScript入门', 'issued', 7, '2026-03-16 09:30:00', 15, '2026-03-17 10:00:00', NULL, NULL, NULL, '2026-06-04 16:15:50', '2026-06-04 16:15:50');
-INSERT INTO `task_books` VALUES (3, 3, '1.STM32硬件选型\n2.传感器驱动编写\n3.通信协议实现\n4.移动端APP对接\n5.系统集成测试', '2026-05-01', 1, '[{\"id\": 1, \"text\": \"完成硬件原理图设计\"}, {\"id\": 2, \"text\": \"编写底层驱动程序\"}, {\"id\": 3, \"text\": \"实现WiFi通信模块\"}]', '[{\"name\": \"MCU\", \"value\": \"STM32F103C8T6\"}, {\"name\": \"传感器\", \"value\": \"DHT11+MQ-135\"}, {\"name\": \"通信\", \"value\": \"ESP8266 WiFi\"}]', '[1] STM32参考手册 [2] 嵌入式C语言程序设计', 'issued', 8, '2026-03-17 14:00:00', 16, '2026-03-18 15:00:00', NULL, NULL, NULL, '2026-06-04 16:15:57', '2026-06-04 16:15:57');
-INSERT INTO `task_books` VALUES (4, 4, '1.响应式布局改造\n2.触摸屏适配\n3.离线缓存机制\n4.PWA支持\n5.多端兼容性测试', '2026-04-25', 1, '[{\"id\": 1, \"text\": \"分析现有PC端架构\"}, {\"id\": 2, \"text\": \"重构CSS样式体系\"}, {\"id\": 3, \"text\": \"添加响应式断点\"}]', '[{\"name\": \"CSS方案\", \"value\": \"Grid + Flexbox\"}, {\"name\": \"JS框架\", \"value\": \"Vue3 Composition API\"}, {\"name\": \"工具\", \"value\": \"PostCSS + Autoprefixer\"}]', '[1] CSS权威指南 [2] 响应式Web设计实战', 'issued', 6, '2026-03-18 10:00:00', 17, '2026-03-19 11:00:00', NULL, NULL, NULL, '2026-06-04 16:15:57', '2026-06-04 16:15:57');
-INSERT INTO `task_books` VALUES (5, 5, '1.数字化转型理论分析\n2.企业案例调研\n3.管理模式对比研究\n4.创新路径总结\n5.论文撰写与答辩准备', '2026-05-15', 1, '[{\"id\": 1, \"text\": \"完成文献综述\"}, {\"id\": 2, \"text\": \"收集企业案例数据\"}, {\"id\": 3, \"text\": \"撰写研究方法论章节\"}]', '[{\"name\": \"研究方法\", \"value\": \"案例分析法+问卷调查\"}, {\"name\": \"工具\", \"value\": \"SPSS + NVivo\"}, {\"name\": \"格式\", \"value\": \"GB/T 7714标准\"}]', '[1] 数字化转型之道 [2] 组织行为学 [3] 管理学研究方法', 'issued', 9, '2026-03-19 15:30:00', 19, '2026-03-20 16:00:00', NULL, NULL, NULL, '2026-06-04 16:16:01', '2026-06-04 16:16:01');
-INSERT INTO `task_books` VALUES (6, 6, '1.WebRTC音视频技术学习\n2.实时互动功能开发\n3.白板协作模块\n4.录播回放系统\n5.平台测试与上线', '2026-05-01', 1, '[{\"id\": 1, \"text\": \"搭建WebRTC信令服务器\"}, {\"id\": 2, \"text\": \"实现P2P连接建立\"}, {\"id\": 3, \"text\": \"开发白板画布组件\"}]', '[{\"name\": \"音视频引擎\", \"value\": \"WebRTC API\"}, {\"name\": \"后端\", \"value\": \"Node.js + Socket.io\"}, {\"name\": \"存储\", \"value\": \"OSS对象存储\"}]', '[1] WebRTC API详解 [2] FFmpeg视频处理指南', 'issued', 13, '2026-03-20 09:00:00', 22, '2026-03-21 10:00:00', NULL, NULL, NULL, '2026-06-04 16:16:01', '2026-06-04 16:16:01');
-INSERT INTO `task_books` VALUES (7, 7, '1.英语教学现状调查\n2.跨文化交际案例分析\n3.教学策略设计\n4.实验验证\n5.结论与建议', '2026-05-10', 1, '[{\"id\": 1, \"text\": \"完成问卷设计\"}, {\"id\": 2, \"text\": \"开展课堂观察\"}, {\"id\": 3, \"text\": \"整理访谈记录\"}]', '[{\"name\": \"研究方法\", \"value\": \"混合研究法\"}, {\"name\": \"工具\", \"value\": \"SPSS统计软件\"}, {\"name\": \"格式\", \"value\": \"APA引用规范\"}]', '[1] 跨文化交际学 [2] 二语习得理论 [3] 英语教学法', 'rejected', 11, '2026-03-17 14:00:00', NULL, NULL, 1, '2026-03-18 10:00:00', '参考文献过旧（2015年前），需补充近5年文献；研究方法描述不够具体，请细化数据收集计划', '2026-06-04 16:16:01', '2026-06-04 16:16:01');
-INSERT INTO `task_books` VALUES (8, 7, '1.英语教学现状调查（更新版）\n2.跨文化交际案例分析（补充）\n3.教学策略设计（细化）\n4.实验验证（量化）\n5.结论与建议（强化）', '2026-05-15', 2, '[{\"id\": 1, \"text\": \"完成问卷设计（含效度检验）\"}, {\"id\": 2, \"text\": \"开展课堂观察（录制视频）\"}, {\"id\": 3, \"text\": \"整理访谈记录（转录文本）\"}]', '[{\"name\": \"研究方法\", \"value\": \"混合研究法（定量60%+定性40%）\"}, {\"name\": \"工具\", \"value\": \"SPSS 26 + NVivo 12\"}, {\"name\": \"格式\", \"value\": \"APA 7th Edition\"}]', '[1] 跨文化交际学（2020版）[2] 二语习得新进展（2019）[3] 英语教学前沿（2021）[4] 文化适应理论（2022）', 'rejected', 11, '2026-03-19 09:00:00', NULL, NULL, 1, '2026-03-20 11:00:00', '版本2仍有问题： deadline时间不合理（距答辩仅40天）；tech_params中缺少样本量说明；请参照模板重新调整', '2026-06-04 16:16:01', '2026-06-04 16:16:01');
-INSERT INTO `task_books` VALUES (9, 8, '', NULL, 1, NULL, NULL, NULL, 'unissued', 10, NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-04 16:16:01', '2026-06-04 16:16:01');
-INSERT INTO `task_books` VALUES (10, 9, '', NULL, 1, NULL, NULL, NULL, 'unissued', 9, NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-04 16:16:01', '2026-06-04 16:16:01');
-INSERT INTO `task_books` VALUES (11, 10, '', NULL, 1, NULL, NULL, NULL, 'unissued', 13, NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-04 16:16:01', '2026-06-04 16:16:01');
-INSERT INTO `task_books` VALUES (12, 11, '', NULL, 1, NULL, NULL, NULL, 'unissued', 6, NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-04 16:16:01', '2026-06-04 16:16:01');
-
--- ----------------------------
 -- Table structure for teacher_student_relations
 -- ----------------------------
 DROP TABLE IF EXISTS `teacher_student_relations`;
@@ -711,83 +452,6 @@ CREATE TABLE `teacher_student_relations`  (
   CONSTRAINT `fk_tsr_teacher` FOREIGN KEY (`teacher_id`) REFERENCES `users` (`user_id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 16 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '师生分配关系表（支持手动添加和Excel批量导入）' ROW_FORMAT = DYNAMIC;
 
--- ----------------------------
--- Records of teacher_student_relations
--- ----------------------------
-INSERT INTO `teacher_student_relations` VALUES (1, 1, 6, 14, 3, 'manual', NULL, '2026-06-04 15:48:00', '2026-06-04 15:48:00');
-INSERT INTO `teacher_student_relations` VALUES (2, 1, 6, 17, 3, 'manual', NULL, '2026-06-04 15:48:00', '2026-06-04 15:48:00');
-INSERT INTO `teacher_student_relations` VALUES (3, 2, 7, 15, 3, 'manual', NULL, '2026-06-04 15:48:00', '2026-06-04 15:48:00');
-INSERT INTO `teacher_student_relations` VALUES (4, 2, 7, 18, 3, 'excel', '批量导入', '2026-06-04 15:48:00', '2026-06-04 15:48:00');
-INSERT INTO `teacher_student_relations` VALUES (5, 3, 8, 16, 4, 'manual', NULL, '2026-06-04 15:48:00', '2026-06-04 15:48:00');
-INSERT INTO `teacher_student_relations` VALUES (6, 3, 8, 22, 4, 'manual', NULL, '2026-06-04 15:48:00', '2026-06-04 15:48:00');
-INSERT INTO `teacher_student_relations` VALUES (7, 4, 9, 19, 5, 'manual', NULL, '2026-06-04 15:48:00', '2026-06-04 15:48:00');
-INSERT INTO `teacher_student_relations` VALUES (8, 4, 9, 20, 5, 'manual', NULL, '2026-06-04 15:48:00', '2026-06-04 15:48:00');
-INSERT INTO `teacher_student_relations` VALUES (9, 1, 10, 21, 3, 'manual', NULL, '2026-06-04 15:48:00', '2026-06-04 15:48:00');
-INSERT INTO `teacher_student_relations` VALUES (10, 7, 13, 23, 13, 'manual', NULL, '2026-06-04 15:48:00', '2026-06-04 15:48:00');
-INSERT INTO `teacher_student_relations` VALUES (11, 1, 6, 24, 3, 'manual', NULL, '2026-06-04 15:48:00', '2026-06-04 15:48:00');
-INSERT INTO `teacher_student_relations` VALUES (12, 2, 7, 25, 3, 'manual', NULL, '2026-06-04 15:48:00', '2026-06-04 15:48:00');
-INSERT INTO `teacher_student_relations` VALUES (13, 5, 11, 14, 3, 'manual', NULL, '2026-06-04 15:48:00', '2026-06-04 15:48:00');
-INSERT INTO `teacher_student_relations` VALUES (14, 6, 9, 16, 5, 'manual', NULL, '2026-06-04 15:48:00', '2026-06-04 15:48:00');
-INSERT INTO `teacher_student_relations` VALUES (15, 7, 13, 15, 13, 'manual', NULL, '2026-06-04 15:48:00', '2026-06-04 15:48:00');
-
--- ----------------------------
--- Table structure for topic_major_relations
--- ----------------------------
-DROP TABLE IF EXISTS `topic_major_relations`;
-CREATE TABLE `topic_major_relations`  (
-  `id` int NOT NULL AUTO_INCREMENT COMMENT '关联记录唯一ID',
-  `topic_id` int NOT NULL COMMENT '题目ID',
-  `major_id` int NOT NULL COMMENT '纳入的专业ID',
-  `included_by` int NULL DEFAULT NULL COMMENT '纳入操作人ID（通常是专业负责人）',
-  `included_at` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '纳入时间',
-  `remark` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '备注（如\"经审核适合本专业\"）',
-  PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `uk_topic_major`(`topic_id` ASC, `major_id` ASC) USING BTREE COMMENT '防止重复纳入同一专业',
-  INDEX `fk_tmr_major`(`major_id` ASC) USING BTREE COMMENT '按专业查询已纳入题目',
-  INDEX `fk_tmr_included_by`(`included_by` ASC) USING BTREE COMMENT '按操作人查询',
-  CONSTRAINT `fk_tmr_included_by` FOREIGN KEY (`included_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `fk_tmr_major` FOREIGN KEY (`major_id`) REFERENCES `majors` (`major_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `fk_tmr_topic` FOREIGN KEY (`topic_id`) REFERENCES `topics` (`topic_id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE = InnoDB AUTO_INCREMENT = 36 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '题目-专业关联表（支持跨专业题目共享）' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of topic_major_relations
--- ----------------------------
-INSERT INTO `topic_major_relations` VALUES (1, 1, 1, 6, '2026-06-04 15:47:53', '适合计科和软工');
-INSERT INTO `topic_major_relations` VALUES (2, 2, 1, 10, '2026-06-04 15:47:53', '计科专用题目');
-INSERT INTO `topic_major_relations` VALUES (3, 3, 2, 14, '2026-06-04 15:47:53', '学生自拟，软工适用');
-INSERT INTO `topic_major_relations` VALUES (4, 4, 1, 6, '2026-06-04 15:47:53', '响应式设计相关');
-INSERT INTO `topic_major_relations` VALUES (5, 5, 1, 6, '2026-06-04 15:47:53', '已达上限暂停分配');
-INSERT INTO `topic_major_relations` VALUES (6, 6, 1, 6, '2026-06-04 15:47:53', '微服务架构方向');
-INSERT INTO `topic_major_relations` VALUES (7, 7, 11, 13, '2026-06-04 15:47:53', '设计专业适用');
-INSERT INTO `topic_major_relations` VALUES (8, 8, 1, 6, '2026-06-04 15:47:53', '已归档历史记录');
-INSERT INTO `topic_major_relations` VALUES (9, 9, 1, 7, '2026-06-04 15:47:53', 'AI算法方向');
-INSERT INTO `topic_major_relations` VALUES (10, 9, 3, 7, '2026-06-04 15:47:53', 'AI专业也可选');
-INSERT INTO `topic_major_relations` VALUES (11, 10, 1, 7, '2026-06-04 15:47:53', '深度学习方向');
-INSERT INTO `topic_major_relations` VALUES (12, 10, 15, 7, '2026-06-04 15:47:53', '信安硕士可选');
-INSERT INTO `topic_major_relations` VALUES (13, 11, 1, 7, '2026-06-04 15:47:53', 'NLP方向');
-INSERT INTO `topic_major_relations` VALUES (14, 12, 3, 18, '2026-06-04 15:47:53', '学生自拟待审核');
-INSERT INTO `topic_major_relations` VALUES (15, 13, 1, 7, '2026-06-04 15:47:53', '图计算方向');
-INSERT INTO `topic_major_relations` VALUES (16, 14, 15, 15, '2026-06-04 15:47:53', '信安硕士专用');
-INSERT INTO `topic_major_relations` VALUES (17, 15, 5, 8, '2026-06-04 15:47:53', '机械/机器人方向');
-INSERT INTO `topic_major_relations` VALUES (18, 16, 4, 16, '2026-06-04 15:47:53', '嵌入式硬件方向');
-INSERT INTO `topic_major_relations` VALUES (19, 17, 5, 8, '2026-06-04 15:47:53', '工业视觉方向');
-INSERT INTO `topic_major_relations` VALUES (20, 18, 5, 8, '2026-06-04 15:47:53', 'IoT物联网方向');
-INSERT INTO `topic_major_relations` VALUES (21, 19, 15, 15, '2026-06-04 15:47:53', '区块链硕士课题');
-INSERT INTO `topic_major_relations` VALUES (22, 20, 10, 17, '2026-06-04 15:47:53', '学生自拟法学方向');
-INSERT INTO `topic_major_relations` VALUES (23, 21, 6, 19, '2026-06-04 15:47:53', '管理学论文方向');
-INSERT INTO `topic_major_relations` VALUES (24, 22, 8, 20, '2026-06-04 15:47:53', '英语教学研究');
-INSERT INTO `topic_major_relations` VALUES (25, 23, 1, 6, '2026-06-04 15:47:53', '已归档-计科');
-INSERT INTO `topic_major_relations` VALUES (26, 24, 1, 6, '2026-06-04 15:47:53', '已归档-入门级');
-INSERT INTO `topic_major_relations` VALUES (27, 25, 2, 15, '2026-06-04 15:47:53', '已弃用-软工');
-INSERT INTO `topic_major_relations` VALUES (28, 1, 2, 6, '2026-06-04 15:47:53', '软工也适用');
-INSERT INTO `topic_major_relations` VALUES (29, 2, 2, 15, '2026-06-04 15:47:53', '软工可选题');
-INSERT INTO `topic_major_relations` VALUES (30, 6, 2, 15, '2026-06-04 15:47:53', '软工微服务方向');
-INSERT INTO `topic_major_relations` VALUES (31, 9, 2, 15, '2026-06-04 15:47:53', '软工算法方向');
-INSERT INTO `topic_major_relations` VALUES (32, 10, 2, 15, '2026-06-04 15:47:53', '软工AI方向');
-INSERT INTO `topic_major_relations` VALUES (33, 11, 2, 15, '2026-06-04 15:47:53', '软工NLP方向');
-INSERT INTO `topic_major_relations` VALUES (34, 13, 2, 15, '2026-06-04 15:47:53', '软工图计算方向');
-INSERT INTO `topic_major_relations` VALUES (35, 14, 2, 15, '2026-06-04 15:47:53', '软工隐私计算方向');
 
 -- ----------------------------
 -- Table structure for topics
@@ -818,35 +482,6 @@ CREATE TABLE `topics`  (
   FULLTEXT INDEX `ft_topic_search`(`topic_name`, `description`) COMMENT '全文搜索索引（按关键词搜题目）',
   CONSTRAINT `fk_topic_creator` FOREIGN KEY (`creator_id`) REFERENCES `users` (`user_id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 26 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '题库表【增强版】（含5星难度、题目类型、来源、技术要求、参考文献）' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of topics
--- ----------------------------
-INSERT INTO `topics` VALUES (1, '基于Spring Boot的顶岗实习管理系统', '前后端分离架构，实现学生、教师、管理员三大模块', 3, 'Web开发', 'engineering', 'teacher', '掌握Vue.js和Spring Boot', '[1] Spring Boot实战 [2] Vue.js官方文档', 6, 2, 1, 'available', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `topics` VALUES (2, '基于Vue3的在线考试系统', '使用Vue3+Element Plus实现在线考试功能，支持自动阅卷', 2, 'Web开发', 'engineering', 'teacher', '掌握Vue3 Composition API', '[1] Vue.js设计与实现 [2] Element Plus文档', 10, 0, 1, 'available', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `topics` VALUES (3, '校园二手交易平台设计与实现', '基于React+Node.js的C2C电商平台，含即时通讯功能', 3, 'Web开发', 'engineering', 'student', '熟悉React和WebSocket', '[1] React官方文档 [2] WebSocket协议', 7, 0, 14, 'available', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `topics` VALUES (4, '智能教务管理系统的移动端适配', '将现有PC端系统改造为响应式设计，支持多端访问', 2, 'Web开发', 'engineering', 'teacher', '了解CSS Grid和Flexbox布局', '[1] CSS权威指南 [2] 响应式Web设计', 6, 1, 1, 'available', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `topics` VALUES (5, '企业级OA办公自动化系统', '包含审批流程、考勤管理、文档共享等功能模块', 4, 'Web开发', 'engineering', 'enterprise', '熟悉工作流引擎（如Activiti）', '[1] Activiti实战指南 [2] 企业应用架构模式', 9, 0, 1, 'unavailable', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `topics` VALUES (6, '基于微服务的分布式电商系统', '采用Spring Cloud Alibaba构建高可用电商架构', 5, '微服务', 'engineering', 'teacher', '掌握Docker和Kubernetes基础', '[1] Spring Cloud实战 [2] Docker容器化技术', 8, 1, 1, 'available', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `topics` VALUES (7, '在线教育直播平台开发', '支持实时音视频互动、白板协作、录播回放功能', 4, 'Web开发', 'engineering', 'enterprise', '了解WebRTC和流媒体传输', '[1] WebRTC API详解 [2] FFmpeg视频处理', 11, 0, 13, 'available', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `topics` VALUES (8, '智慧社区物业管理系统', '集成门禁控制、报修服务、缴费通知等功能', 3, 'Web开发', 'engineering', 'teacher', '了解物联网设备接入', '[1] MQTT协议规范 [2] 物联网架构设计', 6, 0, 1, 'archived', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `topics` VALUES (9, '智能推荐算法在课程设计中的应用', '研究协同过滤推荐算法并实现原型系统', 5, '算法研究', 'research', 'teacher', '熟悉Python和机器学习库', '[1] 推荐系统实践 [2] 机器学习实战', 7, 0, 7, 'available', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `topics` VALUES (10, '深度学习图像识别应用研究', '研究CNN在医疗影像诊断中的应用', 5, 'AI研究', 'research', 'teacher', '熟悉PyTorch框架和GPU编程', '[1] 深度学习 [2] PyTorch官方教程', 7, 0, 7, 'available', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `topics` VALUES (11, '自然语言处理在情感分析中的应用', '基于BERT模型实现中文评论情感分类', 5, 'NLP研究', 'research', 'teacher', '了解Transformer架构原理', '[1] Attention Is All You Need [2] BERT论文解读', 7, 0, 7, 'available', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `topics` VALUES (12, '强化学习在游戏AI中的实践', '使用DQN算法训练智能体完成复杂游戏任务', 5, 'AI研究', 'research', 'student', '掌握OpenAI Gym环境', '[1] 强化学习导论 [2] Deep Q-Network论文', 14, 0, 18, 'available', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `topics` VALUES (13, '图神经网络在社交网络分析中的应用', '研究GCN/GAT模型在用户关系预测中的效果', 5, '图计算', 'research', 'teacher', '熟悉PyG或DGL图学习库', '[1] 图神经网络综述 [2] PyG官方文档', 7, 0, 7, 'available', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `topics` VALUES (14, '联邦学习在隐私保护数据挖掘中的应用', '研究多方安全计算下的机器学习方法', 5, '隐私计算', 'research', 'teacher', '了解差分隐私和安全聚合算法', '[1] 联邦学习综述 [2] 差分隐私理论', 12, 0, 12, 'available', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `topics` VALUES (15, '微服务架构下的容器化部署实践', '使用Docker+Kubernetes完成应用容器化改造', 3, 'DevOps', 'engineering', 'teacher', '了解Docker和K8s', '[1] Docker容器与容器云 [2] Kubernetes权威指南', 8, 1, 8, 'available', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `topics` VALUES (16, '基于STM32的智能家居控制系统', '实现温湿度监测、灯光控制、安防报警等功能', 4, '嵌入式', 'engineering', 'teacher', '熟悉C语言和单片机编程', '[1] STM32参考手册 [2] 嵌入式C语言程序设计', 8, 0, 8, 'available', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `topics` VALUES (17, '工业机器人视觉检测系统设计', '结合OpenCV实现产品缺陷自动识别', 5, '机器人', 'engineering', 'enterprise', '掌握计算机视觉基础算法', '[1] OpenCV官方文档 [2] 数字图像处理', 4, 0, 4, 'available', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `topics` VALUES (18, '物联网环境监测节点设计', '低功耗传感器网络，支持LoRa/NB-IoT通信', 3, 'IoT', 'engineering', 'teacher', '了解无线传感器网络协议', '[1] LoRaWAN规范 [2] NB-IoT技术白皮书', 8, 0, 8, 'available', '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `topics` VALUES (19, '区块链技术在学历证书防伪中的应用研究', '探索联盟链在数字文凭验证场景的应用', 4, '区块链', 'thesis', 'teacher', '了解Hyperledger Fabric框架', '[1] 区块链技术指南 [2] 智能合约开发', 15, 0, 15, 'available', '2026-06-04 15:46:59', '2026-06-04 15:46:59');
-INSERT INTO `topics` VALUES (20, '大数据时代下个人信息保护法律问题研究', '分析GDPR、个人信息保护法的合规要求', 3, '法学', 'thesis', 'student', '具备法学基础知识', '[1] 个人信息保护法释义 [2] GDPR合规指南', 10, 0, 17, 'available', '2026-06-04 15:46:59', '2026-06-04 15:46:59');
-INSERT INTO `topics` VALUES (21, '数字化转型的组织变革与管理创新研究', '以某企业为例探讨数字化转型路径', 3, '管理学', 'thesis', 'teacher', '了解企业管理理论和案例分析方法', '[1] 数字化转型之道 [2] 组织行为学', 7, 0, 9, 'available', '2026-06-04 15:46:59', '2026-06-04 15:46:59');
-INSERT INTO `topics` VALUES (22, '跨文化交际视角下的英语教学策略研究', '分析中外文化差异对英语教学的影响', 2, '教育学', 'thesis', 'teacher', '具备英语专业背景', '[1] 跨文化交际学 [2] 二语习得理论', 11, 0, 11, 'available', '2026-06-04 15:46:59', '2026-06-04 15:46:59');
-INSERT INTO `topics` VALUES (23, '基于JSP的传统管理系统（已过时）', '早期项目模板，仅供历史参考', 2, 'Web开发', 'engineering', 'teacher', '了解传统Java Web开发', '[1] JSP Servlet教程', 6, 3, 1, 'archived', '2026-06-04 15:47:05', '2026-06-04 15:47:05');
-INSERT INTO `topics` VALUES (24, '简单的学生信息管理系统（基础版）', '入门级CRUD项目，适合初学者练习', 1, 'Web开发', 'engineering', 'teacher', '掌握基本数据库操作', '[1] MySQL必知必会', 6, 5, 1, 'archived', '2026-06-04 15:47:05', '2026-06-04 15:47:05');
-INSERT INTO `topics` VALUES (25, '基于PHP的论坛系统（已弃用）', '旧版PHP项目，不再维护', 2, 'Web开发', 'engineering', 'teacher', '了解PHP基础语法', '[1] PHP官方手册', 6, 0, 1, 'unavailable', '2026-06-04 15:47:05', '2026-06-04 15:47:05');
 
 -- ----------------------------
 -- Table structure for users
@@ -887,34 +522,5 @@ CREATE TABLE `users`  (
   CONSTRAINT `fk_user_current_role` FOREIGN KEY (`current_role_id`) REFERENCES `roles` (`role_id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `fk_user_major` FOREIGN KEY (`major_id`) REFERENCES `majors` (`major_id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 26 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户统一表【增强版】（支持多角色切换、激活机制、安全审计、班级信息）' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of users
--- ----------------------------
-INSERT INTO `users` VALUES (1, 'admin_zhang', '张院管', '13800000001', 'zhang@college.edu.cn', '$2a$10$nZ6.TkwHdBzu/UfrkQ6TZuMoeUb/bH7QJ5B/tPsOgfpHPgrweuIHy', 'college_admin', NULL, 1, NULL, NULL, 1, 1, NULL, '教授', '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (2, 'admin_liu', '刘院副', '13800000002', 'liu@college.edu.cn', '$2a$10$P6KtrrOUBiOtQv/sTCWw7.P65jL3eNCV87PJtaCkF/VYBs5Im7Hwy', 'college_admin', NULL, 3, NULL, NULL, 1, 1, '/signatures/liu.png', '副教授', '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (3, 'admin_li', '李专业', '13800000003', 'li@college.edu.cn', '$2a$10$Y8me4bV9Z6ki5iyjq7s.3eei2VwExVWQwTvicDrYydRHJkkacK7AC', 'major_admin', NULL, 1, 1, '软工2101', 1, 1, '/signatures/li.png', '副教授', '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (4, 'admin_wang', '王专业', '13800000004', 'wang_major@college.edu.cn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'major_admin', NULL, 2, 4, '机制2101', 1, 1, '/signatures/wang_m.png', '教授', '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (5, 'admin_chen', '陈专业', '13800000005', 'chen@college.edu.cn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'major_admin', NULL, 3, 6, '会计2101', 1, 1, '/signatures/chen.png', '讲师', '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (6, 'teacher_wang', '王指导', '13800000006', 'wang@college.edu.cn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'teacher', NULL, 1, 1, '软工2101', 1, 1, '/signatures/wang.png', '讲师', '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (7, 'teacher_zhao', '赵指导', '13800000007', 'zhao@college.edu.cn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'teacher', NULL, 1, 2, 'AI2101', 1, 1, '/signatures/zhao.png', '副教授', '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (8, 'teacher_sun', '孙指导', '13800000008', 'sun@college.edu.cn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'teacher', NULL, 2, 5, '机器人2101', 1, 1, '/signatures/sun.png', '教授', '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (9, 'teacher_qian', '钱指导', '13800000009', 'qian@college.edu.cn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'teacher', NULL, 3, 6, '会计2101', 1, 1, '/signatures/qian.png', '讲师', '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (10, 'teacher_zhou', '周指导', '13800000010', 'zhou@college.edu.cn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'teacher', NULL, 1, 1, '计科2101', 1, 1, '/signatures/zhou.png', '副教授', '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (11, 'teacher_wu', '吴指导', '13800000011', 'wu@college.edu.cn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'teacher', NULL, 4, 8, '英语2101', 1, 1, '/signatures/wu.png', '讲师', '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (12, 'teacher_zheng', '郑指导', '13800000012', 'zheng@college.edu.cn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'teacher', NULL, 5, 9, '数学2101', 0, 0, NULL, '教授', '2026-06-04 15:25:21', NULL, 5, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (13, 'teacher_feng', '冯指导', '13800000013', 'feng@college.edu.cn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'teacher', NULL, 7, 11, '设计2101', 1, 1, '/signatures/feng.png', '副教授', '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (14, 'stu_xiaoming', '小明', '13800000100', 'xiaoming@student.edu.cn', '$2a$10$vEyHinm93Jv4MMTsJeYAbOsbaaLGt1SOQnLkRhCbzKIGARTvMuyiu', 'student', NULL, 1, 1, '软工2101', 1, 1, NULL, NULL, '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (15, 'stu_xiaohong', '小红', '13800000101', 'xiaohong@student.edu.cn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'student', NULL, 1, 2, '软工2102', 1, 1, NULL, NULL, '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (16, 'stu_xiaogang', '小刚', '13800000102', 'xiaogang@student.edu.cn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'student', NULL, 2, 5, '机器人2101', 1, 1, NULL, NULL, '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (17, 'stu_xiaoli', '小李', '13800000103', 'xiaoli@student.edu.cn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'student', NULL, 1, 1, '计科2101', 1, 1, NULL, NULL, '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (18, 'stu_xiaozhao', '小赵', '13800000104', 'xiaozhao@student.edu.cn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'student', NULL, 1, 3, 'AI2101', 0, 0, NULL, NULL, '2026-06-04 15:25:21', NULL, 3, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (19, 'stu_xiaoqian', '小钱', '13800000105', 'xiaoqian@student.edu.cn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'student', NULL, 3, 6, '会计2101', 1, 1, NULL, NULL, '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (20, 'stu_xiaosun', '小孙', '13800000106', 'xiaosun@student.edu.cn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'student', NULL, 4, 8, '英语2101', 1, 1, NULL, NULL, '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (21, 'stu_xiaowu', '小吴', '13800000107', 'xiaowu@student.edu.cn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'student', NULL, 5, 9, '数学2101', 1, 1, NULL, NULL, '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (22, 'stu_xiaofeng', '小冯', '13800000108', 'xiaofeng@student.edu.cn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'student', NULL, 7, 11, '设计2101', 1, 1, NULL, NULL, '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (23, 'stu_new1', '新生1', '13800000109', 'new1@student.edu.cn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'student', NULL, 1, 14, '计应2201', 0, 0, NULL, NULL, '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (24, 'stu_new2', '新生2', '13800000110', 'new2@student.edu.cn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'student', NULL, 1, 15, '信安2201', 0, 0, NULL, NULL, '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
-INSERT INTO `users` VALUES (25, 'stu_locked', '锁定生', '13800000111', 'locked@student.edu.cn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'student', NULL, 1, 2, '软工2102', 1, 0, NULL, NULL, '2026-06-04 15:25:21', NULL, 0, NULL, '2026-06-04 15:25:21', '2026-06-04 15:25:21');
 
 SET FOREIGN_KEY_CHECKS = 1;

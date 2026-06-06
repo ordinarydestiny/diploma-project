@@ -5,12 +5,14 @@
         <el-col :xs="24" :sm="12" :md="6">
           <div class="search-item">
             <label>毕业设计学期</label>
-            <el-select v-model="searchForm.semester" placeholder="请选择学期" clearable style="width: 100%">
-              <el-option label="2021-2022学年第二学期(当)" value="2021-2022-2" />
-              <el-option label="2022-2023学年第一学期" value="2022-2023-1" />
-              <el-option label="2022-2023学年第二学期" value="2022-2023-2" />
-              <el-option label="2023-2024学年第一学期" value="2023-2024-1" />
-              <el-option label="2023-2024学年第二学期" value="2023-2024-2" />
+            <el-select v-model="searchForm.semester" placeholder="全部学期" clearable style="width: 100%">
+              <el-option label="全部学期" value="" />
+              <el-option 
+                v-for="sem in semesterList" 
+                :key="sem.semester" 
+                :label="sem.semester" 
+                :value="sem.semester"
+              />
             </el-select>
           </div>
         </el-col>
@@ -24,11 +26,12 @@
           <div class="search-item">
             <label>适用专业</label>
             <el-select v-model="searchForm.major" placeholder="请选择适用专业" clearable style="width: 100%">
-              <el-option label="软件技术" value="软件技术" />
-              <el-option label="计算机科学" value="计算机科学" />
-              <el-option label="大数据技术" value="大数据技术" />
-              <el-option label="人工智能" value="人工智能" />
-              <el-option label="信息安全" value="信息安全" />
+              <el-option 
+                v-for="cat in categoryList" 
+                :key="cat" 
+                :label="cat" 
+                :value="cat"
+              />
             </el-select>
           </div>
         </el-col>
@@ -354,10 +357,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { Search, Refresh, Plus, Download, Delete, Upload, View, UploadFilled, Document } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as XLSX from 'xlsx'
+import request from '@/utils/request'
 
 const loading = ref(false)
 const tableRef = ref(null)
@@ -368,6 +372,102 @@ const editDialogVisible = ref(false)
 const detailDialogVisible = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
+
+// 从API获取的数据
+const tableData = ref([])  // 改为空数组，从API加载
+const semesterList = ref([]) // 学期列表
+const categoryList = ref([]) // 题目分类列表
+
+// 页面加载时获取数据
+onMounted(() => {
+  fetchTopics()
+  fetchSemesters()
+  fetchCategories()
+})
+
+/**
+ * 从后端获取题目列表
+ */
+async function fetchTopics() {
+  loading.value = true
+  try {
+    const res = await request.get('/v1/teacher/topics')
+    if (res.data && Array.isArray(res.data)) {
+      // 获取当前活跃的学期（取第一个）
+      const currentSemester = semesterList.value.length > 0 ? semesterList.value[0].semester : ''
+      
+      // 转换数据格式以匹配前端表格
+      tableData.value = res.data.map((topic, index) => ({
+        id: index + 1,
+        topicId: topic.topic_id,
+        topicName: topic.topic_name,
+        description: topic.description,
+        major: topic.category || '未分类',
+        selectedCount: topic.selection_count || 0,
+        source: formatSource(topic.source),
+        creator: topic.creator_name || '未知创建者',
+        difficulty: formatDifficulty(topic.difficulty),
+        semester: currentSemester, // 使用当前活跃学期
+        status: topic.status,
+        rawData: topic
+      }))
+    }
+  } catch (error) {
+    console.error('获取题目列表失败:', error)
+    ElMessage.error('获取题目列表失败，请刷新页面重试')
+  } finally {
+    loading.value = false
+  }
+}
+
+/**
+ * 从后端获取可用学期列表
+ */
+async function fetchSemesters() {
+  try {
+    const res = await request.get('/v1/teacher/semesters')
+    if (res.data && Array.isArray(res.data)) {
+      semesterList.value = res.data
+    }
+  } catch (error) {
+    console.error('获取学期列表失败:', error)
+  }
+}
+
+/**
+ * 从后端获取题目分类列表
+ */
+async function fetchCategories() {
+  try {
+    const res = await request.get('/v1/teacher/topic-categories')
+    if (res.data && Array.isArray(res.data)) {
+      categoryList.value = res.data
+    }
+  } catch (error) {
+    console.error('获取题目分类列表失败:', error)
+  }
+}
+
+/**
+ * 格式化题目来源
+ */
+function formatSource(source) {
+  const map = {
+    'teacher': '教师命题',
+    'student': '学生自拟',
+    'enterprise': '企业课题'
+  }
+  return map[source] || source || '未知来源'
+}
+
+/**
+ * 格式化难度等级
+ */
+function formatDifficulty(difficulty) {
+  if (!difficulty) return '未知'
+  const map = { 1: '简单', 2: '较易', 3: '中等', 4: '较难', 5: '困难' }
+  return map[difficulty] || difficulty.toString()
+}
 
 const searchForm = reactive({
   semester: '',
@@ -447,116 +547,6 @@ const paginatedIncludeTopics = computed(() => {
   return availableTopicsForInclude.value.slice(start, end)
 })
 
-const tableData = ref([
-  {
-    id: 1,
-    topicId: '131',
-    topicName: '无线宏站勘察系统设计与实现',
-    description: '基于移动通信网络优化需求，设计并开发一套无线宏站勘察系统。系统需支持站点信息管理、勘察数据采集、GIS地图展示、报告自动生成等功能模块。采用前后端分离架构，前端使用Vue.js框架，后端使用Spring Boot，数据库选用MySQL。',
-    major: '计算机应用技术',
-    selectedCount: 1,
-    source: '教师指定题目',
-    creator: '马**',
-    difficulty: '中等',
-    semester: '2021-2022-2'
-  },
-  {
-    id: 2,
-    topicId: '132',
-    topicName: '基于深度学习的图像识别系统',
-    description: '利用卷积神经网络(CNN)技术，设计一套图像识别系统。系统需要支持多种图像分类任务，包括人脸识别、物体检测、场景识别等。要求使用PyTorch或TensorFlow框架进行模型训练和部署。',
-    major: '软件技术',
-    selectedCount: 3,
-    source: '教师指定题目',
-    creator: '廖清科',
-    difficulty: '困难',
-    semester: '2021-2022-2'
-  },
-  {
-    id: 3,
-    topicId: '133',
-    topicName: '电商平台后台管理系统',
-    description: '设计并实现一个功能完善的电商平台后台管理系统。包括商品管理、订单管理、用户管理、数据统计等功能模块。要求界面美观、操作便捷、响应速度快。',
-    major: '软件技术',
-    selectedCount: 5,
-    source: '学生自拟题目',
-    creator: '张三',
-    difficulty: '中等',
-    semester: '2022-2023-1'
-  },
-  {
-    id: 4,
-    topicId: '134',
-    topicName: '智能交通信号控制系统',
-    description: '基于物联网技术和人工智能算法，设计一套智能交通信号控制系统。系统能够根据实时车流量自动调节红绿灯时长，提高道路通行效率，减少拥堵。',
-    major: '大数据技术',
-    selectedCount: 0,
-    source: '科研课题',
-    creator: '李四',
-    difficulty: '困难',
-    semester: '2022-2023-1'
-  },
-  {
-    id: 5,
-    topicId: '135',
-    topicName: '在线教育平台设计与开发',
-    description: '开发一个在线教育平台，支持视频课程播放、在线作业提交、学习进度跟踪、互动答疑等功能。要求支持多端访问(PC端、移动端)，提供良好的用户体验。',
-    major: '软件技术',
-    selectedCount: 8,
-    source: '企业合作题目',
-    creator: '王海洋',
-    difficulty: '中等',
-    semester: '2022-2023-2'
-  },
-  {
-    id: 6,
-    topicId: '136',
-    topicName: '医院信息管理系统',
-    description: '为中小型医院设计一套信息管理系统，包括患者信息管理、挂号预约、病历记录、药品库存管理、费用结算等核心功能模块。要求系统安全稳定，符合医疗行业规范。',
-    major: '计算机科学',
-    selectedCount: 2,
-    source: '教师指定题目',
-    creator: '赵五',
-    difficulty: '中等',
-    semester: '2023-2024-1'
-  },
-  {
-    id: 7,
-    topicId: '137',
-    topicName: '智能家居控制APP',
-    description: '开发一款智能家居控制手机应用，能够连接和控制各种智能设备(灯光、空调、窗帘、安防设备等)。支持语音控制、场景模式设置、定时任务等功能。需要与主流IoT平台对接。',
-    major: '人工智能',
-    selectedCount: 4,
-    source: '学生自拟题目',
-    creator: '孙六',
-    difficulty: '简单',
-    semester: '2023-2024-1'
-  },
-  {
-    id: 8,
-    topicId: '138',
-    topicName: '区块链供应链溯源系统',
-    description: '利用区块链技术的不可篡改特性，设计一个供应链产品溯源系统。从原材料采购到最终销售的全流程追踪，确保产品质量和安全。使用以太坊或Hyperledger Fabric作为底层链。',
-    major: '信息安全',
-    selectedCount: 1,
-    source: '科研课题',
-    creator: '周七',
-    difficulty: '困难',
-    semester: '2023-2024-2'
-  },
-  {
-    id: 9,
-    topicId: '139',
-    topicName: '校园二手交易平台',
-    description: '面向高校学生的二手物品交易平台，支持商品发布、搜索筛选、在线聊天、交易评价等功能。注重用户体验和交易安全性，支持校园身份认证。',
-    major: '软件技术',
-    selectedCount: 10,
-    source: '学生自拟题目',
-    creator: '吴八',
-    difficulty: '简单',
-    semester: '2023-2024-2'
-  }
-])
 
 const filteredData = computed(() => {
   return tableData.value.filter(item => {
@@ -608,25 +598,32 @@ function handleAdd() {
   addForm.difficulty = '中等'
 }
 
-function handleAddSubmit() {
-  addFormRef.value?.validate((valid) => {
+async function handleAddSubmit() {
+  addFormRef.value?.validate(async (valid) => {
     if (valid) {
-      const newTopic = {
-        id: Date.now(),
-        topicId: String(++topicIdCounter),
-        topicName: addForm.topicName,
-        description: addForm.description,
-        major: addForm.major.join(', '),
-        selectedCount: 0,
-        source: addForm.source,
-        creator: '当前用户',
-        difficulty: addForm.difficulty,
-        semester: searchForm.semester || '2023-2024-2'
+      try {
+        // 调用后端API新增题目
+        const newTopicData = {
+          topicName: addForm.topicName,
+          description: addForm.description,
+          category: addForm.major.join(', '), // 使用category字段存储专业
+          source: mapSourceToDb(addForm.source),   // 转换为数据库格式
+          difficulty: mapDifficultyToDb(addForm.difficulty), // 转换为数据库格式
+          requirements: '',  // 可以后续扩展
+          maxStudents: 5    // 默认最大可选学生数
+        }
+        
+        const res = await request.post('/topics', newTopicData)
+        
+        // 新增成功后重新获取数据
+        await fetchTopics()
+        
+        addDialogVisible.value = false
+        ElMessage.success('✅ 新增题目成功！数据已同步到数据库')
+      } catch (error) {
+        console.error('新增题目失败:', error)
+        ElMessage.error('❌ 新增题目失败，请重试')
       }
-
-      tableData.value.unshift(newTopic)
-      addDialogVisible.value = false
-      ElMessage.success(`新增题目成功！题目ID：${newTopic.topicId}`)
     }
   })
 }
@@ -652,32 +649,59 @@ function handleEdit(topic) {
   editDialogVisible.value = true
 }
 
-function handleEditSubmit() {
-  editFormRef.value?.validate((valid) => {
+async function handleEditSubmit() {
+  editFormRef.value?.validate(async (valid) => {
     if (valid) {
-      const index = tableData.value.findIndex(item => item.id === editForm.id)
-
-      if (index > -1) {
-        tableData.value[index] = {
-          ...tableData.value[index],
+      try {
+        // 调用后端API更新题目
+        const updateData = {
           topicName: editForm.topicName,
           description: editForm.description,
-          major: editForm.majorList.join(', '),
-          source: editForm.source,
-          difficulty: editForm.difficulty
+          category: editForm.majorList.join(', '), // 使用category字段存储专业
+          source: mapSourceToDb(editForm.source),   // 转换为数据库格式
+          difficulty: mapDifficultyToDb(editForm.difficulty) // 转换为数据库格式
         }
-
-        if (currentTopic.value && currentTopic.value.id === editForm.id) {
-          currentTopic.value = { ...tableData.value[index] }
-        }
-
+        
+        await request.put(`/topics/${editForm.topicId}`, updateData)
+        
+        // 更新成功后重新获取数据
+        await fetchTopics()
+        
         editDialogVisible.value = false
-        ElMessage.success('✅ 题目修改成功！')
-      } else {
-        ElMessage.error('未找到该题目信息')
+        ElMessage.success('✅ 题目修改成功！数据已同步到数据库')
+      } catch (error) {
+        console.error('更新题目失败:', error)
+        ElMessage.error('❌ 题目修改失败，请重试')
       }
     }
   })
+}
+
+/**
+ * 将前端显示的题目来源转换为数据库存储值
+ */
+function mapSourceToDb(source) {
+  const map = {
+    '教师指定题目': 'teacher',
+    '学生自拟题目': 'student',
+    '企业合作题目': 'enterprise',
+    '科研课题': 'research'
+  }
+  return map[source] || 'teacher'
+}
+
+/**
+ * 将前端显示的难度等级转换为数据库存储值
+ */
+function mapDifficultyToDb(difficulty) {
+  const map = {
+    '简单': 1,
+    '较易': 2,
+    '中等': 3,
+    '较难': 4,
+    '困难': 5
+  }
+  return map[difficulty] || 3
 }
 
 function handleIncludeTopic() {
@@ -809,30 +833,40 @@ function addTopicsToTable(topics) {
   includeFilterMajor.value = ''
 }
 
-function handleRemoveTopic() {
+async function handleRemoveTopic() {
   if (selectedRows.value.length === 0) {
     ElMessage.warning('请先选择要移除的题目')
     return
   }
+  
   ElMessageBox.confirm(
-    `确定要移除选中的 ${selectedRows.value.length} 个题目吗？`,
-    '确认移除',
+    `确定要删除选中的 ${selectedRows.value.length} 个题目吗？<br/><br/>
+     <small style="color: #f56c6c;">⚠️ 此操作将从数据库中永久删除，无法恢复！</small>`,
+    '确认删除',
     {
-      confirmButtonText: '确定',
+      confirmButtonText: '确定删除',
       cancelButtonText: '取消',
-      type: 'warning'
+      type: 'warning',
+      dangerouslyUseHTMLString: true
     }
-  ).then(() => {
-    const ids = selectedRows.value.map(row => row.id)
-    tableData.value = tableData.value.filter(item => !ids.includes(item.id))
-
-    const totalPages = Math.ceil(filteredData.value.length / pageSize.value)
-    if (currentPage.value > totalPages && totalPages > 0) {
-      currentPage.value = totalPages
+  ).then(async () => {
+    try {
+      // 调用后端API逐个删除题目
+      const deletePromises = selectedRows.value.map(row => 
+        request.delete(`/topics/${row.topicId}`)
+      )
+      
+      await Promise.all(deletePromises)
+      
+      // 删除成功后重新获取数据
+      await fetchTopics()
+      
+      ElMessage.success(`✅ 成功删除 ${selectedRows.value.length} 个题目！数据已从数据库移除`)
+      selectedRows.value = []
+    } catch (error) {
+      console.error('删除题目失败:', error)
+      ElMessage.error('❌ 删除失败，可能有些题目已被学生选用或发生错误')
     }
-
-    ElMessage.success(`成功移除 ${ids.length} 个题目`)
-    selectedRows.value = []
   }).catch(() => {})
 }
 
@@ -842,38 +876,44 @@ function handleExport() {
     return
   }
 
-  const headers = ['题目ID', '题目名称', '题目描述', '适用专业', '已选次数', '题目来源', '创建者']
-  const data = filteredData.value.map(row => ({
-    '题目ID': row.topicId,
-    '题目名称': row.topicName,
-    '题目描述': row.description,
-    '适用专业': row.major,
-    '已选次数': row.selectedCount,
-    '题目来源': row.source,
-    '创建者': row.creator
-  }))
+  try {
+    const headers = ['题目ID', '题目名称', '题目描述', '适用专业', '已选次数', '题目来源', '创建者']
+    const data = filteredData.value.map(row => ({
+      '题目ID': row.topicId,
+      '题目名称': row.topicName,
+      '题目描述': row.description,
+      '适用专业': row.major,
+      '已选次数': row.selectedCount,
+      '题目来源': row.source,
+      '创建者': row.creator
+    }))
 
-  const ws = XLSX.utils.json_to_sheet(data)
-  ws['!cols'] = [
-    { wch: 10 },
-    { wch: 30 },
-    { wch: 50 },
-    { wch: 18 },
-    { wch: 12 },
-    { wch: 16 },
-    { wch: 12 }
-  ]
+    const ws = XLSX.utils.json_to_sheet(data)
+    ws['!cols'] = [
+      { wch: 10 },
+      { wch: 30 },
+      { wch: 50 },
+      { wch: 18 },
+      { wch: 12 },
+      { wch: 16 },
+      { wch: 12 }
+    ]
 
-  XLSX.utils.sheet_add_aoa(ws, [headers], { origin: 'A1' })
+    XLSX.utils.sheet_add_aoa(ws, [headers], { origin: 'A1' })
 
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, '题目列表')
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, '题目列表')
 
-  const fileName = `毕业设计题目_${new Date().toISOString().slice(0, 10)}.xlsx`
-  XLSX.writeFile(wb, fileName)
+    const fileName = `毕业设计题目_${new Date().toISOString().slice(0, 10)}.xlsx`
+    XLSX.writeFile(wb, fileName)
 
-  ElMessage.success(`成功导出 ${filteredData.value.length} 条题目数据`)
+    ElMessage.success(`成功导出 ${filteredData.value.length} 条题目数据`)
+  } catch (error) {
+    console.error('导出失败:', error)
+    ElMessage.error('导出失败，请重试')
+  }
 }
+
 
 function handleImport() {
   importDialogVisible.value = true
