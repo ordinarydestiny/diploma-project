@@ -166,6 +166,12 @@ public class StudentGraduationServiceImpl implements StudentGraduationService {
             }
         }
         
+        // 查询学生班级信息
+        User student = userMapper.selectById(studentId);
+        if (student != null) {
+            batchInfo.setClassName(student.getClassName());
+        }
+        
         // 查询指导老师信息
         TeacherStudentRelation relation = teacherStudentRelationMapper.selectOne(
             new LambdaQueryWrapper<TeacherStudentRelation>()

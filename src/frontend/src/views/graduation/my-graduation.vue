@@ -9,7 +9,7 @@
           <div class="collapse-title">
             <span class="title-icon">📋</span>
             <span class="title-text">毕业设计批次信息</span>
-            <el-tag :type="batchInfo.status === 'active' ? 'success' : batchInfo.status === 'draft' ? 'info' : 'info'" size="small" class="status-tag">
+            <el-tag :type="batchInfo.status === 'active' ? 'success' : batchInfo.status === 'draft' ? 'info' : 'danger'" size="small" class="status-tag">
               {{ batchInfo.status === 'active' ? '进行中' : batchInfo.status === 'draft' ? '未开始' : '已结束' }}
             </el-tag>
           </div>
@@ -140,8 +140,8 @@
             <el-descriptions-item label="下达时间">{{ taskBookInfo.issuedAt || '-' }}</el-descriptions-item>
             <el-descriptions-item label="完成期限">{{ taskBookInfo.deadline || '-' }}</el-descriptions-item>
             <el-descriptions-item label="任务书状态">
-              <el-tag :type="taskBookInfo.status === 'confirmed' ? 'success' : taskBookInfo.status === 'rejected' ? 'danger' : 'warning'" size="small">
-                {{ taskBookInfo.status === 'confirmed' ? '✅ 已确认' : taskBookInfo.status === 'rejected' ? '❌ 已驳回' : '⏳ 待确认' }}
+              <el-tag :type="getTaskBookStatusType(taskBookInfo.status)" size="small">
+                {{ formatTaskBookStatus(taskBookInfo.status) }}
               </el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="指导老师">{{ taskBookInfo.issuerName || '-' }}</el-descriptions-item>
@@ -538,49 +538,53 @@
 
     function getTopicStatusType(status) {
       const map = {
-        '待选择': 'info',
-        '已选题': 'success',
-        '审核中': 'warning'
+        'pending': 'warning',
+        'approved': 'success',
+        'rejected': 'danger'
       }
       return map[status] || 'info'
     }
 
     function getTaskBookStatusType(status) {
       const map = {
-        '未下达': 'info',
-        '已下达': 'warning',
-        '已确认': 'success'
+        'unissued': 'info',
+        'issued': 'success',
+        'confirmed': 'success',
+        'rejected': 'danger'
       }
       return map[status] || 'info'
     }
 
     function getMidtermStatusType(status) {
       const map = {
-        '未提交': 'info',
-        '待审核': 'warning',
-        '已通过': 'success',
-        '需修改': 'danger'
+        'draft': 'info',
+        'submitted': 'info',
+        'pending': 'warning',
+        'approved': 'success',
+        'rejected': 'danger'
       }
       return map[status] || 'info'
     }
 
     function getFinalStatusType(status) {
       const map = {
-        '未提交': 'info',
-        '待审核': 'warning',
-        '已定稿': 'success',
-        '需修改': 'danger'
+        'draft': 'info',
+        'submitted': 'info',
+        'pending': 'warning',
+        'approved': 'success',
+        'finalized': 'success',
+        'rejected': 'danger'
       }
       return map[status] || 'info'
     }
 
     function getDefenseStatusType(status) {
       const map = {
-        '未答辩': 'info',
-        '待提交': 'warning',
-        '待审核': 'warning',
-        '已通过': 'success',
-        '需修改': 'danger'
+        'not_started': 'info',
+        'submitted': 'warning',
+        'pending': 'warning',
+        'approved': 'success',
+        'rejected': 'danger'
       }
       return map[status] || 'info'
     }

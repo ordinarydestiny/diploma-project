@@ -5,13 +5,12 @@
         <el-col :xs="24" :sm="12" :md="6">
           <div class="search-item">
             <label>毕业设计学期</label>
-            <el-select v-model="searchForm.semester" placeholder="全部学期" clearable style="width: 100%">
-              <el-option label="全部学期" value="" />
+            <el-select v-model="searchForm.semester" placeholder="请选择届次" clearable style="width: 100%">
               <el-option 
                 v-for="sem in semesterList" 
-                :key="sem.semester" 
-                :label="sem.semester" 
-                :value="sem.semester"
+                :key="sem.grade" 
+                :label="sem.label" 
+                :value="sem.grade"
               />
             </el-select>
           </div>
@@ -357,7 +356,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { Search, Refresh, Plus, Download, Delete, Upload, View, UploadFilled, Document } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as XLSX from 'xlsx'
@@ -391,11 +390,13 @@ onMounted(() => {
 async function fetchTopics() {
   loading.value = true
   try {
-    const res = await request.get('/v1/teacher/topics')
+    const params = {}
+    if (searchForm.semester) {
+      params.grade = searchForm.semester
+    }
+    
+    const res = await request.get('/v1/teacher/topics', { params })
     if (res.data && Array.isArray(res.data)) {
-      // 获取当前活跃的学期（取第一个）
-      const currentSemester = semesterList.value.length > 0 ? semesterList.value[0].semester : ''
-      
       // 转换数据格式以匹配前端表格
       tableData.value = res.data.map((topic, index) => ({
         id: index + 1,
@@ -407,7 +408,6 @@ async function fetchTopics() {
         source: formatSource(topic.source),
         creator: topic.creator_name || '未知创建者',
         difficulty: formatDifficulty(topic.difficulty),
-        semester: currentSemester, // 使用当前活跃学期
         status: topic.status,
         rawData: topic
       }))
@@ -550,7 +550,6 @@ const paginatedIncludeTopics = computed(() => {
 
 const filteredData = computed(() => {
   return tableData.value.filter(item => {
-    if (searchForm.semester && item.semester !== searchForm.semester) return false
     if (searchForm.topicName && !item.topicName.includes(searchForm.topicName)) return false
     if (searchForm.major && !item.major.includes(searchForm.major)) return false
     if (searchForm.isSelfCreated === 'yes' && !item.creator.includes('**')) return false
@@ -563,6 +562,12 @@ const paginatedData = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
   const end = start + pageSize.value
   return filteredData.value.slice(start, end)
+})
+
+// 监听届次筛选条件变化，自动重新获取数据
+watch(() => searchForm.semester, () => {
+  currentPage.value = 1
+  fetchTopics()
 })
 
 function handleSearch() {

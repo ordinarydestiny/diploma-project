@@ -12,8 +12,11 @@ import com.internship.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/topics")
@@ -24,6 +27,7 @@ public class TopicController {
     private final TopicMapper topicMapper;
     private final TopicMajorRelationMapper topicMajorRelationMapper;
     private final JwtUtil jwtUtil;
+    private final JdbcTemplate jdbcTemplate;
 
     @GetMapping
     @Operation(summary = "题目列表（支持筛选）")
@@ -32,16 +36,57 @@ public class TopicController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) Integer majorId,
             @RequestParam(required = false) String difficulty,
-            @RequestParam(required = false) String keyword) {
-        
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String grade) {
+
         Page<Topic> pageParam = new Page<>(page, size);
-        var wrapper = new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Topic>()
-            .like(keyword != null, Topic::getTopicName, keyword)
-            .eq(difficulty != null, Topic::getDifficulty, difficulty)
-            .eq(Topic::getStatus, "available")
-            .orderByDesc(Topic::getCreatedAt);
-        
-        return Result.success(topicMapper.selectPage(pageParam, wrapper));
+
+        if (grade != null && !grade.isEmpty()) {
+            // 按届次筛选：只显示该届次批次中被学生选中的题目
+            String sql = """
+                SELECT DISTINCT t.* FROM topics t
+                INNER JOIN student_selections ss ON t.topic_id = ss.topic_id
+                INNER JOIN project_batches pb ON ss.batch_id = pb.batch_id
+                WHERE pb.batch_name LIKE CONCAT(?, '%%')
+                  AND t.status = 'available'
+                ORDER BY t.created_at DESC
+            """;
+
+            List<Topic> topics = jdbcTemplate.query(sql, (rs, rowNum) -> {
+                Topic topic = new Topic();
+                topic.setTopicId(rs.getInt("topic_id"));
+                topic.setTopicName(rs.getString("topic_name"));
+                topic.setDescription(rs.getString("description"));
+                topic.setDifficulty(rs.getByte("difficulty"));
+                topic.setCategory(rs.getString("category"));
+                topic.setTopicType(rs.getString("topic_type"));
+                topic.setSource(rs.getString("source"));
+                topic.setRequirements(rs.getString("requirements"));
+                topic.setReferences(rs.getString("`references`"));
+                topic.setCreatorId(rs.getInt("creator_id"));
+                topic.setSelectionCount(rs.getInt("selection_count"));
+                topic.setMaxStudents(rs.getInt("max_students"));
+                topic.setStatus(rs.getString("status"));
+                topic.setCreatedAt(rs.getTimestamp("created_at"));
+                topic.setUpdatedAt(rs.getTimestamp("updated_at"));
+                return topic;
+            }, grade + "届");
+
+            IPage<Topic> result = new Page<>(pageParam.getCurrent(), pageParam.getSize(), topics.size());
+            int start = (int) ((pageParam.getCurrent() - 1) * pageParam.getSize());
+            int end = Math.min((int) (start + pageParam.getSize()), topics.size());
+            result.setRecords(topics.subList(start, end));
+            return Result.success(result);
+        } else {
+            // 不按届次筛选：显示所有可用题目
+            var wrapper = new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Topic>()
+                .like(keyword != null, Topic::getTopicName, keyword)
+                .eq(difficulty != null, Topic::getDifficulty, difficulty)
+                .eq(Topic::getStatus, "available")
+                .orderByDesc(Topic::getCreatedAt);
+
+            return Result.success(topicMapper.selectPage(pageParam, wrapper));
+        }
     }
 
     @GetMapping("/{topicId}")

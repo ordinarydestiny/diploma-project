@@ -73,7 +73,7 @@ public class TeacherStudentController {
 
     @PutMapping("/change-teacher")
     @Operation(summary = "更换指导老师")
-    @PreAuthorize("hasRole('major_admin')")
+    @PreAuthorize("hasAnyRole('college_admin', 'major_admin')")
     @LogOperation("更换指导老师")
     public Result<Void> changeTeacher(
             @PathVariable Integer batchId,

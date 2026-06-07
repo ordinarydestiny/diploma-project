@@ -150,4 +150,12 @@ public class TeacherDataController {
         List<String> categories = teacherDataService.getTopicCategories(teacherId);
         return Result.success(categories);
     }
+
+    @GetMapping("/available-students")
+    @Operation(summary = "获取可纳入的学生列表", description = "获取所有还没有师生关系的学生，用于纳入学生功能")
+    public Result<List<Map<String, Object>>> getAvailableStudentsForRelation() {
+        Integer teacherId = getCurrentTeacherId();
+        List<Map<String, Object>> students = teacherDataService.getAvailableStudentsForRelation(teacherId);
+        return Result.success(students);
+    }
 }

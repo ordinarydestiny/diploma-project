@@ -29,21 +29,44 @@ public class TaskBookController {
     @LogOperation("下达任务书")
     public Result<TaskBook> issue(@RequestBody TaskBook taskBook) {
         Integer issuerId = jwtUtil.getCurrentUserId() != null ? jwtUtil.getCurrentUserId().intValue() : null;
-        
-        // 查询当前最大版本号
+
+        // 先查询是否已存在未下达或草稿状态的任务书（避免重复创建）
+        LambdaQueryWrapper<TaskBook> existingWrapper = new LambdaQueryWrapper<TaskBook>()
+            .eq(TaskBook::getSelectionId, taskBook.getSelectionId())
+            .in(TaskBook::getStatus, "unissued", "draft")
+            .orderByDesc(TaskBook::getVersion)
+            .last("LIMIT 1");
+        TaskBook existingTask = taskBookMapper.selectOne(existingWrapper);
+
+        if (existingTask != null) {
+            // 更新现有记录
+            existingTask.setContent(taskBook.getContent());
+            existingTask.setDeadline(taskBook.getDeadline());
+            existingTask.setRequirements(taskBook.getRequirements());
+            existingTask.setTechParams(taskBook.getTechParams());
+            existingTask.setReferences(taskBook.getReferences());
+            existingTask.setStatus("issued");
+            existingTask.setIssuerId(issuerId);
+            existingTask.setIssuedAt(java.time.LocalDateTime.now());
+
+            taskBookMapper.updateById(existingTask);
+            return Result.success(existingTask);
+        }
+
+        // 查询当前最大版本号（创建新记录）
         LambdaQueryWrapper<TaskBook> wrapper = new LambdaQueryWrapper<TaskBook>()
             .eq(TaskBook::getSelectionId, taskBook.getSelectionId())
             .orderByDesc(TaskBook::getVersion)
             .last("LIMIT 1");
         TaskBook lastVersion = taskBookMapper.selectOne(wrapper);
-        
+
         int newVersion = (lastVersion != null) ? lastVersion.getVersion() + 1 : 1;
-        
+
         taskBook.setVersion(newVersion);
         taskBook.setStatus("issued");
         taskBook.setIssuerId(issuerId);
         taskBook.setIssuedAt(java.time.LocalDateTime.now());
-        
+
         taskBookMapper.insert(taskBook);
         return Result.success(taskBook);
     }
@@ -105,6 +128,26 @@ public class TaskBookController {
     @LogOperation("删除任务书")
     public Result<Void> delete(@PathVariable Integer taskId) {
         taskBookMapper.deleteById(taskId);
+        return Result.success();
+    }
+
+    @PutMapping("/{taskId}/reset")
+    @Operation(summary = "重置任务书状态为未下达")
+    @PreAuthorize("hasAnyRole('teacher', 'college_admin')")
+    @LogOperation("重置任务书状态")
+    public Result<Void> resetStatus(@PathVariable Integer taskId) {
+        TaskBook taskBook = taskBookMapper.selectById(taskId);
+        if (taskBook != null) {
+            taskBook.setStatus("unissued");
+            taskBook.setIssuerId(null);
+            taskBook.setIssuedAt(null);
+            taskBook.setConfirmBy(null);
+            taskBook.setConfirmAt(null);
+            taskBook.setRejectorId(null);
+            taskBook.setRejectTime(null);
+            taskBook.setRejectComment(null);
+            taskBookMapper.updateById(taskBook);
+        }
         return Result.success();
     }
 }

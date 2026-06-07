@@ -24,28 +24,82 @@ public class TeacherDataServiceImpl implements TeacherDataService {
 
     @Override
     public List<Map<String, Object>> getMyStudents(Integer teacherId) {
-        String sql = """
-            SELECT 
-                tsr.id as relation_id,
-                tsr.student_id,
-                u.username as student_no,
-                u.real_name as student_name,
-                u.class_name,
-                m.major_name,
-                c.college_name,
-                tsr.batch_id,
-                pb.batch_name,
-                tsr.created_at as assigned_time
-            FROM teacher_student_relations tsr
-            LEFT JOIN users u ON tsr.student_id = u.user_id
-            LEFT JOIN majors m ON u.major_id = m.major_id
-            LEFT JOIN colleges c ON m.college_id = c.college_id
-            LEFT JOIN project_batches pb ON tsr.batch_id = pb.batch_id
-            WHERE tsr.teacher_id = ?
-            ORDER BY u.username ASC
-        """;
-        
-        return jdbcTemplate.queryForList(sql, teacherId);
+        String roleSql = "SELECT role FROM users WHERE user_id = ?";
+        String userRole = jdbcTemplate.queryForObject(roleSql, String.class, teacherId);
+
+        String sql;
+
+        if ("college_admin".equals(userRole) || "major_admin".equals(userRole)) {
+            sql = """
+                WITH ranked_relations AS (
+                    SELECT
+                        tsr.id as relation_id,
+                        tsr.student_id,
+                        tsr.teacher_id,
+                        u.username as student_no,
+                        u.real_name as student_name,
+                        u.class_name,
+                        m.major_name,
+                        c.college_name,
+                        tsr.batch_id,
+                        pb.batch_name,
+                        tchr.real_name as teacher_name,
+                        tsr.created_at as assigned_time,
+                        ROW_NUMBER() OVER (PARTITION BY tsr.student_id ORDER BY tsr.created_at DESC) as rn
+                    FROM teacher_student_relations tsr
+                    LEFT JOIN users u ON tsr.student_id = u.user_id
+                    LEFT JOIN majors m ON u.major_id = m.major_id
+                    LEFT JOIN colleges c ON m.college_id = c.college_id
+                    LEFT JOIN project_batches pb ON tsr.batch_id = pb.batch_id
+                    LEFT JOIN users tchr ON tsr.teacher_id = tchr.user_id
+                )
+                SELECT 
+                    relation_id, student_id, teacher_id, student_no, student_name,
+                    class_name, major_name, college_name, batch_id, batch_name,
+                    teacher_name, assigned_time
+                FROM ranked_relations
+                WHERE rn = 1
+                ORDER BY student_no ASC
+            """;
+
+            return jdbcTemplate.queryForList(sql);
+
+        } else {
+            sql = """
+                WITH ranked_relations AS (
+                    SELECT
+                        tsr.id as relation_id,
+                        tsr.student_id,
+                        tsr.teacher_id,
+                        u.username as student_no,
+                        u.real_name as student_name,
+                        u.class_name,
+                        m.major_name,
+                        c.college_name,
+                        tsr.batch_id,
+                        pb.batch_name,
+                        tchr.real_name as teacher_name,
+                        tsr.created_at as assigned_time,
+                        ROW_NUMBER() OVER (PARTITION BY tsr.student_id ORDER BY tsr.created_at DESC) as rn
+                    FROM teacher_student_relations tsr
+                    LEFT JOIN users u ON tsr.student_id = u.user_id
+                    LEFT JOIN majors m ON u.major_id = m.major_id
+                    LEFT JOIN colleges c ON m.college_id = c.college_id
+                    LEFT JOIN project_batches pb ON tsr.batch_id = pb.batch_id
+                    LEFT JOIN users tchr ON tsr.teacher_id = tchr.user_id
+                    WHERE tsr.teacher_id = ?
+                )
+                SELECT
+                    relation_id, student_id, teacher_id, student_no, student_name,
+                    class_name, major_name, college_name, batch_id, batch_name,
+                    teacher_name, assigned_time
+                FROM ranked_relations
+                WHERE rn = 1
+                ORDER BY student_no ASC
+            """;
+
+            return jdbcTemplate.queryForList(sql, teacherId);
+        }
     }
 
     @Override
@@ -189,6 +243,9 @@ public class TeacherDataServiceImpl implements TeacherDataService {
 
     @Override
     public List<Map<String, Object>> getAllStudentSelections(Integer teacherId, String status) {
+        String roleSql = "SELECT role FROM users WHERE user_id = ?";
+        String userRole = jdbcTemplate.queryForObject(roleSql, String.class, teacherId);
+        
         StringBuilder sqlBuilder = new StringBuilder("""
             SELECT 
                 ss.selection_id,
@@ -223,16 +280,32 @@ public class TeacherDataServiceImpl implements TeacherDataService {
             LEFT JOIN topics t ON ss.topic_id = t.topic_id
             LEFT JOIN majors m ON u.major_id = m.major_id
             LEFT JOIN project_batches pb ON ss.batch_id = pb.batch_id
-            LEFT JOIN teacher_student_relations tsr 
-                ON tsr.student_id = ss.student_id AND tsr.batch_id = ss.batch_id
-            WHERE tsr.teacher_id = ?
         """);
         
-        if (status != null && !status.isEmpty() && !"all".equals(status)) {
-            sqlBuilder.append(" AND ss.status = ?");
-            return jdbcTemplate.queryForList(sqlBuilder.toString(), teacherId, status);
+        if ("college_admin".equals(userRole) || "major_admin".equals(userRole)) {
+            // 院管/专业负责人：查看所有学生选题
+            sqlBuilder.append(" WHERE 1=1");
+            
+            if (status != null && !status.isEmpty() && !"all".equals(status)) {
+                sqlBuilder.append(" AND ss.status = ?");
+                return jdbcTemplate.queryForList(sqlBuilder.toString(), status);
+            } else {
+                return jdbcTemplate.queryForList(sqlBuilder.toString());
+            }
         } else {
-            return jdbcTemplate.queryForList(sqlBuilder.toString(), teacherId);
+            // 普通教师：只查看自己指导的学生选题
+            sqlBuilder.append("""
+                LEFT JOIN teacher_student_relations tsr 
+                    ON tsr.student_id = ss.student_id AND tsr.batch_id = ss.batch_id
+                WHERE tsr.teacher_id = ?
+            """);
+            
+            if (status != null && !status.isEmpty() && !"all".equals(status)) {
+                sqlBuilder.append(" AND ss.status = ?");
+                return jdbcTemplate.queryForList(sqlBuilder.toString(), teacherId, status);
+            } else {
+                return jdbcTemplate.queryForList(sqlBuilder.toString(), teacherId);
+            }
         }
     }
 
@@ -268,49 +341,71 @@ public class TeacherDataServiceImpl implements TeacherDataService {
 
     @Override
     public List<Map<String, Object>> getMyTaskBooks(Integer teacherId) {
-        String sql = """
-            SELECT 
-                tb.task_id,
-                tb.selection_id,
-                tb.content,
-                tb.deadline,
-                tb.version,
-                tb.requirements,
-                tb.tech_params,
-                tb.references as ref_content,
-                tb.status as taskbook_status,
-                tb.issuer_id,
-                tb.issued_at,
-                tb.confirm_by,
-                tb.confirm_at,
-                tb.rejector_id,
-                tb.reject_time,
-                tb.reject_comment,
-                tb.created_at,
-                tb.updated_at,
-                u.username as student_no,
-                u.real_name as student_name,
-                u.class_name,
-                t.topic_name,
-                ss.status as selection_status,
-                ui.real_name as issuer_name,
-                (SELECT GROUP_CONCAT(DISTINCT tchr.real_name SEPARATOR '、')
-                 FROM teacher_student_relations tsr2
-                 INNER JOIN users tchr ON tsr2.teacher_id = tchr.user_id
-                 WHERE tsr2.student_id = ss.student_id AND tsr2.batch_id = ss.batch_id
-                ) as teacher_name
-            FROM task_books tb
-            INNER JOIN student_selections ss ON tb.selection_id = ss.selection_id
-            INNER JOIN users u ON ss.student_id = u.user_id
-            INNER JOIN topics t ON ss.topic_id = t.topic_id
-            LEFT JOIN users ui ON tb.issuer_id = ui.user_id
-            INNER JOIN teacher_student_relations tsr 
-                ON tsr.student_id = ss.student_id AND tsr.batch_id = ss.batch_id
-            WHERE tsr.teacher_id = ?
-            ORDER BY u.username ASC, COALESCE(tb.issued_at, tb.created_at) DESC
-        """;
-        
-        return jdbcTemplate.queryForList(sql, teacherId);
+        String roleSql = "SELECT role FROM users WHERE user_id = ?";
+        String userRole = jdbcTemplate.queryForObject(roleSql, String.class, teacherId);
+
+        StringBuilder sqlBuilder = new StringBuilder("""
+            SELECT * FROM (
+                SELECT
+                    tb.task_id,
+                    tb.selection_id,
+                    tb.content,
+                    tb.deadline,
+                    tb.version,
+                    tb.requirements,
+                    tb.tech_params,
+                    tb.references as ref_content,
+                    tb.status as taskbook_status,
+                    tb.issuer_id,
+                    tb.issued_at,
+                    tb.confirm_by,
+                    tb.confirm_at,
+                    tb.rejector_id,
+                    tb.reject_time,
+                    tb.reject_comment,
+                    tb.created_at,
+                    tb.updated_at,
+                    u.username as student_no,
+                    u.real_name as student_name,
+                    u.class_name,
+                    t.topic_name,
+                    ss.status as selection_status,
+                    ui.real_name as issuer_name,
+                    (SELECT GROUP_CONCAT(DISTINCT tchr.real_name SEPARATOR '、')
+                     FROM teacher_student_relations tsr2
+                     INNER JOIN users tchr ON tsr2.teacher_id = tchr.user_id
+                     WHERE tsr2.student_id = ss.student_id AND tsr2.batch_id = ss.batch_id
+                    ) as teacher_name,
+                    ROW_NUMBER() OVER (PARTITION BY ss.student_id ORDER BY tb.version DESC) as rn
+                FROM task_books tb
+                INNER JOIN student_selections ss ON tb.selection_id = ss.selection_id
+                INNER JOIN users u ON ss.student_id = u.user_id
+                INNER JOIN topics t ON ss.topic_id = t.topic_id
+                LEFT JOIN users ui ON tb.issuer_id = ui.user_id
+        """);
+
+        if ("college_admin".equals(userRole) || "major_admin".equals(userRole)) {
+            // 院管/专业负责人：查看所有任务书（只显示最新版本）
+            sqlBuilder.append(" WHERE 1=1");
+
+            sqlBuilder.append("""
+            ) t WHERE rn = 1
+            ORDER BY student_no ASC
+            """);
+
+            return jdbcTemplate.queryForList(sqlBuilder.toString());
+        } else {
+            // 普通教师：只查看自己指导的学生的任务书（只显示最新版本）
+            sqlBuilder.append("""
+                INNER JOIN teacher_student_relations tsr
+                    ON tsr.student_id = ss.student_id AND tsr.batch_id = ss.batch_id
+                WHERE tsr.teacher_id = ?
+            ) t WHERE rn = 1
+            ORDER BY student_no ASC
+            """);
+
+            return jdbcTemplate.queryForList(sqlBuilder.toString(), teacherId);
+        }
     }
 
     @Override
@@ -478,6 +573,9 @@ public class TeacherDataServiceImpl implements TeacherDataService {
 
     @Override
     public List<Map<String, Object>> getDefenseRecords(Integer teacherId, String batchId) {
+        String roleSql = "SELECT role FROM users WHERE user_id = ?";
+        String userRole = jdbcTemplate.queryForObject(roleSql, String.class, teacherId);
+        
         StringBuilder sqlBuilder = new StringBuilder("""
             SELECT 
                 d.defense_id,
@@ -515,69 +613,100 @@ public class TeacherDataServiceImpl implements TeacherDataService {
             INNER JOIN topics t ON ss.topic_id = t.topic_id
             LEFT JOIN files f ON d.record_file_id = f.file_id
             LEFT JOIN final_scores fs ON d.selection_id = fs.selection_id
-            WHERE EXISTS (
-                SELECT 1 FROM teacher_student_relations tsr 
-                WHERE tsr.student_id = ss.student_id 
-                AND tsr.batch_id = ss.batch_id 
-                AND tsr.teacher_id = ?
-            )
         """);
         
-        if (batchId != null && !batchId.isEmpty()) {
-            sqlBuilder.append(" AND ss.batch_id = ?");
-            return jdbcTemplate.queryForList(sqlBuilder.toString(), teacherId, batchId);
+        if ("college_admin".equals(userRole) || "major_admin".equals(userRole)) {
+            // 院管/专业负责人：查看所有答辩记录
+            sqlBuilder.append(" WHERE 1=1");
+            
+            if (batchId != null && !batchId.isEmpty()) {
+                sqlBuilder.append(" AND ss.batch_id = ?");
+                return jdbcTemplate.queryForList(sqlBuilder.toString(), batchId);
+            } else {
+                return jdbcTemplate.queryForList(sqlBuilder.toString());
+            }
         } else {
-            return jdbcTemplate.queryForList(sqlBuilder.toString(), teacherId);
+            // 普通教师：只查看自己指导的学生的答辩记录
+            sqlBuilder.append("""
+                WHERE EXISTS (
+                    SELECT 1 FROM teacher_student_relations tsr 
+                    WHERE tsr.student_id = ss.student_id 
+                    AND tsr.batch_id = ss.batch_id 
+                    AND tsr.teacher_id = ?
+                )
+            """);
+            
+            if (batchId != null && !batchId.isEmpty()) {
+                sqlBuilder.append(" AND ss.batch_id = ?");
+                return jdbcTemplate.queryForList(sqlBuilder.toString(), teacherId, batchId);
+            } else {
+                return jdbcTemplate.queryForList(sqlBuilder.toString(), teacherId);
+            }
         }
     }
 
     @Override
     public List<Map<String, Object>> getStudentSignIns(Integer teacherId, Integer studentId, String dateRange) {
-        StringBuilder sqlBuilder = new StringBuilder("""
-            SELECT
-                u.user_id as student_id,
-                u.username as student_no,
-                u.real_name as student_name,
-                u.class_name,
-                (SELECT GROUP_CONCAT(DISTINCT tchr.real_name SEPARATOR '、')
-                 FROM teacher_student_relations tsr2
-                 INNER JOIN users tchr ON tsr2.teacher_id = tchr.user_id
-                 WHERE tsr2.student_id = u.user_id AND tsr2.batch_id = (
-                     SELECT batch_id FROM teacher_student_relations tsr3 
-                     WHERE tsr3.student_id = u.user_id AND tsr3.teacher_id = ? LIMIT 1
-                 )
-                ) as teacher_name,
-                pb.batch_name,
-                DATEDIFF(pb.end_date, pb.start_date) + 1 as total_days,
-                (SELECT COUNT(*) FROM sign_ins si2 
-                 WHERE si2.student_id = u.user_id 
-                 AND si2.sign_status = 'normal'
-                 AND si2.batch_id = (
-                     SELECT batch_id FROM teacher_student_relations tsr4 
-                     WHERE tsr4.student_id = u.user_id AND tsr4.teacher_id = ? LIMIT 1
-                 )
-                ) as checked_days,
-                (SELECT CONCAT(si3.sign_date, ' ', si3.sign_time) FROM sign_ins si3 
-                 WHERE si3.student_id = u.user_id 
-                 AND si3.batch_id = (
-                     SELECT batch_id FROM teacher_student_relations tsr5 
-                     WHERE tsr5.student_id = u.user_id AND tsr5.teacher_id = ? LIMIT 1
-                 )
-                 ORDER BY si3.created_at DESC LIMIT 1
-                ) as last_sign_time,
-                (SELECT si4.location FROM sign_ins si4 
-                 WHERE si4.student_id = u.user_id 
-                 AND si4.batch_id = (
-                     SELECT batch_id FROM teacher_student_relations tsr6 
-                     WHERE tsr6.student_id = u.user_id AND tsr6.teacher_id = ? LIMIT 1
-                 )
-                 ORDER BY si4.created_at DESC LIMIT 1
-                ) as location
-            FROM users u
-            INNER JOIN teacher_student_relations tsr ON tsr.student_id = u.user_id
-            LEFT JOIN project_batches pb ON tsr.batch_id = pb.batch_id
-            WHERE tsr.teacher_id = ?
-        """);
+        String roleSql = "SELECT role FROM users WHERE user_id = ?";
+        String userRole = jdbcTemplate.queryForObject(roleSql, String.class, teacherId);
+        
+        StringBuilder sqlBuilder;
+        
+        if ("college_admin".equals(userRole) || "major_admin".equals(userRole)) {
+            // 院管/专业负责人：查看所有学生的签到记录
+            sqlBuilder = new StringBuilder("""
+                SELECT
+                    u.user_id as student_id,
+                    u.username as student_no,
+                    u.real_name as student_name,
+                    u.class_name,
+                    (SELECT GROUP_CONCAT(DISTINCT tchr.real_name SEPARATOR '、')
+                     FROM teacher_student_relations tsr2
+                     INNER JOIN users tchr ON tsr2.teacher_id = tchr.user_id
+                     WHERE tsr2.student_id = u.user_id
+                    ) as teacher_name,
+                    (SELECT pb2.batch_name FROM teacher_student_relations tsr_main 
+                     LEFT JOIN project_batches pb2 ON tsr_main.batch_id = pb2.batch_id 
+                     WHERE tsr_main.student_id = u.user_id LIMIT 1) as batch_name,
+                    (SELECT DATEDIFF(pb3.end_date, pb3.start_date) + 1 FROM teacher_student_relations tsr_b 
+                     LEFT JOIN project_batches pb3 ON tsr_b.batch_id = pb3.batch_id 
+                     WHERE tsr_b.student_id = u.user_id LIMIT 1) as total_days,
+                    (SELECT COUNT(*) FROM sign_ins si WHERE si.student_id = u.user_id AND si.sign_status = 'normal') as checked_days,
+                    (SELECT CONCAT(si_last.sign_date, ' ', si_last.sign_time) FROM sign_ins si_last 
+                     WHERE si_last.student_id = u.user_id ORDER BY si_last.created_at DESC LIMIT 1) as last_sign_time,
+                    (SELECT si_loc.location FROM sign_ins si_loc 
+                     WHERE si_loc.student_id = u.user_id ORDER BY si_loc.created_at DESC LIMIT 1) as location
+                FROM users u
+                INNER JOIN teacher_student_relations tsr ON tsr.student_id = u.user_id
+                WHERE u.role = 'student'
+            """);
+        } else {
+            // 普通教师：只查看自己指导的学生的签到记录
+            sqlBuilder = new StringBuilder("""
+                SELECT
+                    u.user_id as student_id,
+                    u.username as student_no,
+                    u.real_name as student_name,
+                    u.class_name,
+                    (SELECT GROUP_CONCAT(DISTINCT tchr.real_name SEPARATOR '、')
+                     FROM teacher_student_relations tsr2
+                     INNER JOIN users tchr ON tsr2.teacher_id = tchr.user_id
+                     WHERE tsr2.student_id = u.user_id AND tsr2.teacher_id = ?
+                    ) as teacher_name,
+                    pb.batch_name,
+                    DATEDIFF(pb.end_date, pb.start_date) + 1 as total_days,
+                    (SELECT COUNT(*) FROM sign_ins si2 
+                     WHERE si2.student_id = u.user_id AND si2.sign_status = 'normal') as checked_days,
+                    (SELECT CONCAT(si3.sign_date, ' ', si3.sign_time) FROM sign_ins si3 
+                     WHERE si3.student_id = u.user_id ORDER BY si3.created_at DESC LIMIT 1) as last_sign_time,
+                    (SELECT si4.location FROM sign_ins si4 
+                     WHERE si4.student_id = u.user_id ORDER BY si4.created_at DESC LIMIT 1) as location
+                FROM users u
+                INNER JOIN teacher_student_relations tsr ON tsr.student_id = u.user_id
+                LEFT JOIN project_batches pb ON tsr.batch_id = pb.batch_id
+                WHERE tsr.teacher_id = ?
+            """);
+        }
         
         if (studentId != null) {
             sqlBuilder.append(" AND u.user_id = ?");
@@ -591,27 +720,31 @@ public class TeacherDataServiceImpl implements TeacherDataService {
             }
             
             if (studentId != null) {
-                return jdbcTemplate.queryForList(
-                    sqlBuilder.toString(), 
-                    teacherId, teacherId, teacherId, teacherId, teacherId, studentId, dateRange
-                );
+                if ("college_admin".equals(userRole) || "major_admin".equals(userRole)) {
+                    return jdbcTemplate.queryForList(sqlBuilder.toString(), studentId, dateRange);
+                } else {
+                    return jdbcTemplate.queryForList(sqlBuilder.toString(), teacherId, teacherId, studentId, dateRange);
+                }
             } else {
-                return jdbcTemplate.queryForList(
-                    sqlBuilder.toString(), 
-                    teacherId, teacherId, teacherId, teacherId, teacherId, dateRange
-                );
+                if ("college_admin".equals(userRole) || "major_admin".equals(userRole)) {
+                    return jdbcTemplate.queryForList(sqlBuilder.toString(), dateRange);
+                } else {
+                    return jdbcTemplate.queryForList(sqlBuilder.toString(), teacherId, teacherId, dateRange);
+                }
             }
         } else {
             if (studentId != null) {
-                return jdbcTemplate.queryForList(
-                    sqlBuilder.toString(),
-                    teacherId, teacherId, teacherId, teacherId, teacherId, studentId
-                );
+                if ("college_admin".equals(userRole) || "major_admin".equals(userRole)) {
+                    return jdbcTemplate.queryForList(sqlBuilder.toString(), studentId);
+                } else {
+                    return jdbcTemplate.queryForList(sqlBuilder.toString(), teacherId, teacherId, studentId);
+                }
             } else {
-                return jdbcTemplate.queryForList(
-                    sqlBuilder.toString(),
-                    teacherId, teacherId, teacherId, teacherId, teacherId
-                );
+                if ("college_admin".equals(userRole) || "major_admin".equals(userRole)) {
+                    return jdbcTemplate.queryForList(sqlBuilder.toString());
+                } else {
+                    return jdbcTemplate.queryForList(sqlBuilder.toString(), teacherId, teacherId);
+                }
             }
         }
     }
@@ -620,17 +753,13 @@ public class TeacherDataServiceImpl implements TeacherDataService {
     public List<Map<String, Object>> getAvailableSemesters(Integer teacherId) {
         String sql = """
             SELECT DISTINCT 
-                pb.batch_id,
-                pb.semester,
-                pb.batch_name,
-                pb.start_date,
-                pb.end_date,
-                pb.status as batch_status
-            FROM project_batches pb
-            WHERE pb.status IN ('active', 'completed')
-            ORDER BY pb.start_date DESC
+                CAST(SUBSTRING(batch_name, 1, 4) AS UNSIGNED) as grade,
+                CONCAT(CAST(SUBSTRING(batch_name, 1, 4) AS UNSIGNED), '届') as label
+            FROM project_batches
+            WHERE batch_name REGEXP '^[0-9]{4}届'
+            ORDER BY grade DESC
         """;
-        
+
         return jdbcTemplate.queryForList(sql);
     }
 
@@ -644,5 +773,30 @@ public class TeacherDataServiceImpl implements TeacherDataService {
         """;
         
         return jdbcTemplate.queryForList(sql, String.class);
+    }
+
+    @Override
+    public List<Map<String, Object>> getAvailableStudentsForRelation(Integer teacherId) {
+        String sql = """
+            SELECT
+                u.user_id as student_id,
+                u.username as student_no,
+                u.real_name as student_name,
+                u.class_name,
+                m.major_name,
+                c.college_name
+            FROM users u
+            LEFT JOIN majors m ON u.major_id = m.major_id
+            LEFT JOIN colleges c ON m.college_id = c.college_name
+            WHERE u.role = 'student'
+              AND u.status = 1
+              AND NOT EXISTS (
+                  SELECT 1 FROM teacher_student_relations tsr
+                  WHERE tsr.student_id = u.user_id
+              )
+            ORDER BY u.username ASC
+        """;
+
+        return jdbcTemplate.queryForList(sql);
     }
 }

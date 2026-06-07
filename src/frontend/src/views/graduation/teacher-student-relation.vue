@@ -252,11 +252,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Search, Refresh, Plus, UserFilled, Upload, Download, Delete, UploadFilled, Document } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as XLSX from 'xlsx'
+import request from '@/utils/request'
 
 const route = useRoute()
 
@@ -276,6 +277,11 @@ const searchForm = reactive({
   teacherName: ''
 })
 
+// 动态数据
+const batchList = ref([])
+const classList = ref([])
+const allTeachers = ref([])
+
 const selectedRows = ref([])
 const selectedClass = ref('')
 const assignedCount = computed(() => tableData.value.length)
@@ -286,41 +292,151 @@ const selectedStudents = ref([])
 const importFileList = ref([])
 const selectedFile = ref(null)
 
-const allAvailableStudents = [
-  { name: '邹成龙', studentId: '1831613446', majorName: '软件技术', className: '软件182' },
-  { name: '黎优', studentId: '1831613319', majorName: '软件技术', className: '软件182' },
-  { name: '杨海英', studentId: '1831613206', majorName: '软件技术', className: '软件182' },
-  { name: '杜宇阳', studentId: '1831613412', majorName: '软件技术', className: '软件182' },
-  { name: '刘黎', studentId: '1831613123', majorName: '软件技术', className: '软件182' },
-  { name: '李佳雨', studentId: '1831613203', majorName: '软件技术', className: '软件182' },
-  { name: '樊海涛', studentId: '1831613113', majorName: '软件技术', className: '软件182' },
-  { name: '翁秀洞', studentId: '1631613132', majorName: '软件技术', className: '软件182' },
-  { name: '潘朝阳', studentId: '1831613088', majorName: '软件技术', className: '软件182' },
-  { name: '朱颖', studentId: '1831613108', majorName: '软件技术', className: '软件184' },
-  { name: '王云凡', studentId: '1631613426', majorName: '软件技术', className: '软件184' },
-  { name: '李志明', studentId: '1831613122', majorName: '软件技术', className: '软件184' },
-  { name: '张小龙', studentId: '1831613144', majorName: '软件技术', className: '软件184' }
-]
+// 所有可选学生（从数据库获取）
+const allAvailableStudents = ref([])
+const availableStudents = ref([])
 
-const availableStudents = ref([...allAvailableStudents])
+// 主表格数据
+const tableData = ref([])
 
-const paginatedStudents = computed(() => {
-  const start = (studentCurrentPage.value - 1) * studentPageSize.value
-  const end = start + studentPageSize.value
-  return availableStudents.value.slice(start, end)
+// 页面加载时获取数据
+onMounted(() => {
+  fetchRelations()
+  fetchBatches()
+  fetchAllStudents()
+  fetchTeachers()
 })
 
-const tableData = ref([
-  { id: 1, studentName: '朱颖', studentId: '1831613108', majorName: '软件技术', className: '软件184', teacherName: '廖清科' },
-  { id: 2, studentName: '王云凡', studentId: '1631613426', majorName: '软件技术', className: '软件184', teacherName: '廖清科' },
-  { id: 3, studentName: '李志明', studentId: '1831613122', majorName: '软件技术', className: '软件184', teacherName: '王海洋' },
-  { id: 4, studentName: '张小龙', studentId: '1831613144', majorName: '软件技术', className: '软件184', teacherName: '廖清科' },
-  { id: 5, studentName: '陈李海', studentId: '1831613409', majorName: '软件技术', className: '软件184', teacherName: '廖清科' },
-  { id: 6, studentName: '刘淇', studentId: '1831613423', majorName: '软件技术', className: '软件184', teacherName: '廖清科' },
-  { id: 7, studentName: '王勋', studentId: '1831613433', majorName: '软件技术', className: '软件184', teacherName: '廖清科' },
-  { id: 8, studentName: '何金龙', studentId: '1831613114', majorName: '软件技术', className: '软件184', teacherName: '廖清科' },
-  { id: 9, studentName: '廖双', studentId: '1831613222', majorName: '软件技术', className: '软件184', teacherName: '廖清科' }
-])
+/**
+ * 获取师生关系列表
+ */
+async function fetchRelations() {
+  loading.value = true
+  try {
+    // 使用teacherData接口获取完整的师生关系数据
+    const res = await request.get('/v1/teacher/students')
+    
+    if (res.data && Array.isArray(res.data)) {
+      tableData.value = res.data.map((item, index) => ({
+        id: item.id || (index + 1),
+        studentName: item.student_name || item.real_name || '未知',
+        studentId: item.student_no || item.username || '',
+        majorName: item.major_name || '',
+        className: item.class_name || '',
+        teacherName: item.teacher_name || null,
+        rawData: item
+      }))
+    }
+  } catch (error) {
+    console.error('获取师生关系失败:', error)
+    ElMessage.error('获取师生关系数据失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+/**
+ * 获取批次列表
+ */
+async function fetchBatches() {
+  try {
+    const res = await request.get('/batches')
+    if (res.data && Array.isArray(res.data)) {
+      batchList.value = res.data.map(batch => ({
+        label: `${batch.semester || batch.batch_name}`,
+        value: batch.batch_id.toString()
+      }))
+      
+      // 如果URL有batchId参数，自动选中
+      if (route.query?.batchId) {
+        searchForm.batchId = route.query.batchId
+      } else if (batchList.value.length > 0) {
+        searchForm.batchId = batchList.value[0].value
+      }
+    }
+  } catch (error) {
+    console.error('获取批次列表失败:', error)
+  }
+}
+
+/**
+ * 获取所有学生（用于纳入弹窗）
+ */
+async function fetchAllStudents() {
+  try {
+    // 使用新的API获取可纳入的学生（排除已有师生关系的学生）
+    const res = await request.get('/v1/teacher/available-students')
+    if (res.data && Array.isArray(res.data)) {
+      allAvailableStudents.value = res.data.map(student => ({
+        id: student.student_id,
+        name: student.student_name || '未知',
+        studentId: student.student_no || '',
+        majorName: student.major_name || '',
+        className: student.class_name || ''
+      }))
+
+      // 去重
+      const uniqueStudents = []
+      const seenIds = new Set()
+      for (const s of allAvailableStudents.value) {
+        if (!seenIds.has(s.id)) {
+          seenIds.add(s.id)
+          uniqueStudents.push(s)
+        }
+      }
+      allAvailableStudents.value = uniqueStudents
+
+      // 提取唯一班级列表
+      const classes = [...new Set(allAvailableStudents.value.map(s => s.className).filter(c => c))]
+      classList.value = classes.sort()
+    }
+  } catch (error) {
+    console.error('获取学生列表失败:', error)
+    ElMessage.warning('获取学生列表失败，请刷新页面重试')
+  }
+}
+
+/**
+ * 获取教师列表
+ */
+async function fetchTeachers() {
+  try {
+    // 从当前登录用户信息或使用固定的教师列表
+    // 先尝试从本地存储获取
+    const userInfo = localStorage.getItem('user_info')
+    
+    if (userInfo) {
+      try {
+        const user = JSON.parse(userInfo)
+        allTeachers.value = [{
+          label: user.real_name || '当前用户',
+          value: user.real_name || '当前用户',
+          major: user.major_name || '',
+          phone: user.phone || '',
+          title: user.title || '',
+          userId: user.user_id || 1
+        }]
+        
+        // 初始化筛选后的教师列表
+        filteredTeachers.value = [...allTeachers.value]
+        return
+      } catch (e) {
+        console.log('解析用户信息失败')
+      }
+    }
+    
+    // 备用方案：使用默认的教师数据
+    allTeachers.value = [
+      { label: '王指导', value: '王指导', major: '软件工程', phone: '138****1234', title: '副教授', userId: 3 },
+      { label: '李专业', value: '李专业', major: '计算机科学', phone: '139****5678', title: '教授', userId: 2 },
+      { label: '张院管', value: '张院管', major: '人工智能', phone: '137****9012', title: '院长', userId: 1 }
+    ]
+    
+    filteredTeachers.value = [...allTeachers.value]
+  } catch (error) {
+    console.error('获取教师列表失败:', error)
+  }
+}
 
 const filteredData = computed(() => {
   return tableData.value.filter(item => {
@@ -336,6 +452,13 @@ const paginatedData = computed(() => {
   return filteredData.value.slice(start, end)
 })
 
+// 纳入学生弹窗的分页数据
+const paginatedStudents = computed(() => {
+  const start = (studentCurrentPage.value - 1) * studentPageSize.value
+  const end = start + studentPageSize.value
+  return availableStudents.value.slice(start, end)
+})
+
 const assignForm = reactive({
   teacherName: ''
 })
@@ -344,35 +467,24 @@ const assignRules = {
   teacherName: [{ required: true, message: '请选择指导教师', trigger: 'change' }]
 }
 
-const allTeachers = [
-  { label: '廖清科', value: '廖清科', major: '软件技术', phone: '138****1234', title: '副教授' },
-  { label: '王海洋', value: '王海洋', major: '软件技术', phone: '139****5678', title: '讲师' },
-  { label: '张三', value: '张三', major: '计算机科学', phone: '137****9012', title: '教授' },
-  { label: '李四', value: '李四', major: '信息安全', phone: '136****3456', title: '副教授' },
-  { label: '赵五', value: '赵五', major: '大数据技术', phone: '135****7890', title: '讲师' },
-  { label: '孙六', value: '孙六', major: '软件工程', phone: '134****2345', title: '助教' },
-  { label: '周七', value: '周七', major: '人工智能', phone: '133****6789', title: '教授' },
-  { label: '吴八', value: '吴八', major: '网络工程', phone: '132****0123', title: '副教授' }
-]
-
-const filteredTeachers = ref([...allTeachers])
+const filteredTeachers = ref([])
 const teacherSearchLoading = ref(false)
 
 function searchTeachers(query) {
   if (query !== '') {
     teacherSearchLoading.value = true
     setTimeout(() => {
-      filteredTeachers.value = allTeachers.filter(teacher => {
+      filteredTeachers.value = allTeachers.value.filter(teacher => {
         return (
           teacher.label.toLowerCase().includes(query.toLowerCase()) ||
-          teacher.major.includes(query) ||
-          teacher.title.includes(query)
+          (teacher.major && teacher.major.includes(query)) ||
+          (teacher.title && teacher.title.includes(query))
         )
       })
       teacherSearchLoading.value = false
     }, 200)
   } else {
-    filteredTeachers.value = [...allTeachers]
+    filteredTeachers.value = [...allTeachers.value]
   }
 }
 
@@ -412,7 +524,7 @@ function handleImportStudent() {
   studentLoading.value = true
   setTimeout(() => {
     const existingStudentIds = tableData.value.map(s => s.studentId)
-    availableStudents.value = allAvailableStudents.filter(s => !existingStudentIds.includes(s.studentId))
+    availableStudents.value = allAvailableStudents.value.filter(s => !existingStudentIds.includes(s.studentId))
     studentLoading.value = false
   }, 300)
 }
@@ -558,7 +670,7 @@ function handleImportSubmitConfirm() {
       selectedFile.value = null
       importFileList.value = []
 
-      let message = `✅ 导入完成！<br/>`
+      let message = `导入完成！<br/>`
       if (successCount > 0) message += `• 新增 ${successCount} 条数据<br/>`
       if (updateCount > 0) message += `• 更新 ${updateCount} 条数据<br/>`
       if (failCount > 0) message += `• 失败 ${failCount} 条数据<br/>`
@@ -611,65 +723,120 @@ function handleExportRelation() {
 
 function handleDelete() {
   if (selectedRows.value.length === 0) {
-    ElMessage.warning('请先选择要删除的数据')
+    ElMessage.warning('请先选择要移除的学生')
     return
   }
+
+  const studentNames = selectedRows.value.map(row => row.studentName).join('、')
+
   ElMessageBox.confirm(
-    `确定要移除选中的 ${selectedRows.value.length} 名学生吗？`,
-    '确认',
+    `确定要移除选中的 <strong>${selectedRows.value.length}</strong> 名学生吗？<br/><br/>学生列表：${studentNames}<br/><br/>注意：移除后这些学生将重新出现在"纳入学生"列表中。`,
+    '批量确认移除',
     {
-      confirmButtonText: '确定',
+      confirmButtonText: `确定移除 (${selectedRows.value.length}人)`,
       cancelButtonText: '取消',
-      type: 'warning'
+      type: 'warning',
+      dangerouslyUseHTMLString: true
     }
-  ).then(() => {
-    const ids = selectedRows.value.map(row => row.id)
-    tableData.value = tableData.value.filter(item => !ids.includes(item.id))
+  ).then(async () => {
+    try {
+      loading.value = true
+      let successCount = 0
+      let failCount = 0
 
-    const totalPages = Math.ceil(filteredData.value.length / pageSize.value)
-    if (currentPage.value > totalPages && totalPages > 0) {
-      currentPage.value = totalPages
+      for (const row of selectedRows.value) {
+        try {
+          const studentId = row.rawData?.student_id || row.studentId
+          const batchId = row.rawData?.batch_id || searchForm.batchId
+
+          if (studentId && batchId) {
+            await request.delete(`/batches/${batchId}/relations/${studentId}`)
+            successCount++
+          } else {
+            failCount++
+          }
+        } catch (error) {
+          console.error(`移除学生 ${row.studentName} 失败:`, error)
+          failCount++
+        }
+      }
+
+      await fetchRelations()
+      
+      // 刷新可纳入学生列表（让被移除的学生重新出现在纳入弹窗中）
+      await fetchAllStudents()
+
+      if (failCount === 0) {
+        ElMessage.success(`成功移除 ${successCount} 名学生，这些学生已回到可纳入列表`)
+      } else if (successCount > 0) {
+        ElMessage.warning(`成功移除 ${successCount} 名（已回到纳入列表），失败 ${failCount} 名`)
+      } else {
+        ElMessage.error('移除失败，请稍后重试')
+      }
+
+      selectedRows.value = []
+    } catch (error) {
+      console.error('批量删除失败:', error)
+      ElMessage.error('操作失败：' + (error.response?.data?.message || error.message))
+    } finally {
+      loading.value = false
     }
-
-    ElMessage.success(`成功移除 ${ids.length} 名学生`)
-    selectedRows.value = []
   }).catch(() => {})
 }
 
 function handleRefresh() {
   loading.value = true
-  setTimeout(() => {
-    loading.value = false
-    ElMessage.success('刷新成功，数据已更新')
-  }, 500)
+  fetchRelations()
 }
 
 function handleRemove(row) {
   ElMessageBox.confirm(
-    `确定要移除学生 ${row.studentName} (${row.studentId}) 吗？`,
-    '确认',
+    `确定要移除学生 <strong>${row.studentName}</strong> (${row.studentId}) 的师生关系吗？<br/><br/>注意：移除后该学生将不再显示在此列表中。`,
+    '确认移除',
     {
       confirmButtonText: '确定移除',
       cancelButtonText: '取消',
-      type: 'warning'
+      type: 'warning',
+      dangerouslyUseHTMLString: true
     }
-  ).then(() => {
-    const index = tableData.value.findIndex(item => item.id === row.id)
-    if (index > -1) {
-      tableData.value.splice(index, 1)
-      availableStudents.value.push({
-        name: row.studentName,
-        studentId: row.studentId,
-        majorName: row.majorName,
-        className: row.className
-      })
+  ).then(async () => {
+    try {
+      const studentId = row.rawData?.student_id || row.studentId
+      const batchId = row.rawData?.batch_id || searchForm.batchId
 
-      const totalPages = Math.ceil(filteredData.value.length / pageSize.value)
-      if (currentPage.value > totalPages && totalPages > 0) {
-        currentPage.value = totalPages
+      if (!studentId) {
+        ElMessage.error('无法获取学生ID')
+        return
       }
 
-      ElMessage.success(`已移除学生：${row.studentName}`)
+      if (!batchId) {
+        ElMessage.error('无法获取批次ID')
+        return
+      }
+
+      loading.value = true
+
+      await request.delete(`/batches/${batchId}/relations/${studentId}`)
+
+      // 刷新主列表
+      await fetchRelations()
+      
+      // 刷新可纳入学生列表（让被移除的学生重新出现在纳入弹窗中）
+      await fetchAllStudents()
+
+      ElMessage.success(`已成功移除学生：${row.studentName}，该学生已回到可纳入列表`)
+    } catch (error) {
+      console.error('移除失败:', error)
+      
+      if (error.response?.status === 403) {
+        ElMessage.error('权限不足：您没有权限执行此操作')
+      } else if (error.response?.status === 404) {
+        ElMessage.error('记录不存在或已被删除')
+      } else {
+        ElMessage.error('移除失败：' + (error.response?.data?.message || error.message))
+      }
+    } finally {
+      loading.value = false
     }
   }).catch(() => {})
 }
@@ -683,10 +850,10 @@ function handleClassChange(val) {
   studentCurrentPage.value = 1
 
   setTimeout(() => {
-    let filtered = [...allAvailableStudents]
+    let filtered = [...allAvailableStudents.value]
 
     if (val) {
-      filtered = allAvailableStudents.filter(s => s.className === val)
+      filtered = allAvailableStudents.value.filter(s => s.className === val)
     }
 
     const existingStudentIds = tableData.value.map(s => s.studentId)
@@ -695,7 +862,7 @@ function handleClassChange(val) {
     studentLoading.value = false
 
     if (val) {
-      const totalCount = allAvailableStudents.filter(s => s.className === val).length
+      const totalCount = allAvailableStudents.value.filter(s => s.className === val).length
       const alreadyIncluded = totalCount - availableStudents.value.length
       if (alreadyIncluded > 0) {
         ElMessage.info(`班级 ${val} 共 ${totalCount} 人，已纳入 ${alreadyIncluded} 人，可选 ${availableStudents.value.length} 人`)
@@ -749,49 +916,105 @@ function handleImportSubmit() {
 }
 
 function addStudentsToTable(students) {
-  let newId = Math.max(...tableData.value.map(s => s.id), 0) + 1
   let successCount = 0
 
-  students.forEach(student => {
-    tableData.value.push({
-      id: newId++,
-      studentName: student.name,
-      studentId: student.studentId,
-      majorName: student.majorName,
-      className: student.className,
-      teacherName: null
-    })
-    successCount++
-  })
-
-  importDialogVisible.value = false
-
-  const totalPages = Math.ceil(filteredData.value.length / pageSize.value)
-  currentPage.value = totalPages
-
-  if (successCount > 0) {
-    ElMessage.success(`✅ 成功纳入 ${successCount} 位学生！当前批次共 ${tableData.value.length} 人`)
+  // 获取当前登录用户的ID作为默认教师ID
+  const userInfo = localStorage.getItem('user_info')
+  let defaultTeacherId = 1 // 默认使用院管（user_id=1）
+  if (userInfo) {
+    try {
+      const user = JSON.parse(userInfo)
+      if (user.user_id) {
+        defaultTeacherId = user.user_id
+      }
+    } catch (e) {
+      console.error('解析用户信息失败:', e)
+    }
   }
 
-  selectedStudents.value = []
-  selectedClass.value = ''
+  students.forEach(async (student) => {
+    try {
+      const batchId = searchForm.batchId || 1
+      const studentId = student.id || student.studentId
+
+      if (!studentId || !batchId) {
+        console.error('缺少必要参数:', { studentId, batchId })
+        return
+      }
+
+      await request.post(`/batches/${batchId}/relations`, null, {
+        params: {
+          teacherId: defaultTeacherId,
+          studentId: studentId
+        }
+      })
+      successCount++
+    } catch (error) {
+      console.error(`纳入学生 ${student.name} 失败:`, error)
+    }
+  })
+
+  setTimeout(async () => {
+    await fetchRelations()
+
+    importDialogVisible.value = false
+
+    if (successCount > 0) {
+      ElMessage.success(`成功纳入 ${successCount} 名学生`)
+    } else {
+      ElMessage.error('纳入学生失败，请稍后重试')
+    }
+  }, 500)
 }
 
 function handleAssignSubmit() {
-  assignFormRef.value?.validate((valid) => {
+  assignFormRef.value?.validate(async (valid) => {
     if (valid) {
-      selectedRows.value.forEach(student => {
-        const item = tableData.value.find(s => s.id === student.id)
-        if (item) {
-          item.teacherName = assignForm.teacherName
+      try {
+        const batchId = searchForm.batchId || 1
+        
+        // 找到选中的教师信息
+        const selectedTeacher = allTeachers.value.find(t => t.label === assignForm.teacherName)
+        
+        if (!selectedTeacher) {
+          ElMessage.error('未找到教师信息')
+          return
         }
-      })
-
-      ElMessage.success(
-        `成功为 ${selectedRows.value.length} 名学生分配指导教师：${assignForm.teacherName}`
-      )
-      assignDialogVisible.value = false
-      assignForm.teacherName = ''
+        
+        // 保存当前选中的学生数量（避免后续操作影响）
+        const totalSelected = selectedRows.value.length
+        let successCount = 0
+        
+        // 批量分配教师
+        for (const student of selectedRows.value) {
+          try {
+            await request.put(`/batches/${batchId}/relations/change-teacher`, null, {
+              params: {
+                studentId: student.rawData?.student_id || student.studentId || student.id,
+                newTeacherId: selectedTeacher.userId
+              }
+            })
+            successCount++
+          } catch (error) {
+            console.error(`为 ${student.studentName} 分配教师失败:`, error)
+          }
+        }
+        
+        // 重新获取数据
+        await fetchRelations()
+        
+        assignDialogVisible.value = false
+        assignForm.teacherName = ''
+        
+        if (successCount > 0) {
+          ElMessage.success(`成功为 ${successCount} 名学生分配指导教师：${assignForm.teacherName}`)
+        } else {
+          ElMessage.error(`为 ${totalSelected} 名学生分配指导教师失败`)
+        }
+      } catch (error) {
+        console.error('分配教师失败:', error)
+        ElMessage.error('分配教师失败：' + (error.response?.data?.message || error.message))
+      }
     }
   })
 }

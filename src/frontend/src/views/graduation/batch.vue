@@ -4,34 +4,41 @@
       <el-row :gutter="16" align="middle">
         <el-col :xs="24" :sm="12" :md="6">
           <div class="search-item">
-            <label>年级</label>
-            <el-select v-model="searchForm.grade" placeholder="请输入毕业设计系需年级" clearable style="width: 100%">
-              <el-option label="2020级" value="2020" />
-              <el-option label="2021级" value="2021" />
-              <el-option label="2022级" value="2022" />
-              <el-option label="2023级" value="2023" />
-              <el-option label="2024级" value="2024" />
+            <label>届次</label>
+            <el-select v-model="searchForm.grade" placeholder="请选择届次" clearable style="width: 100%">
+              <el-option 
+                v-for="grade in gradeList" 
+                :key="grade" 
+                :label="grade + '届'" 
+                :value="grade"
+              />
             </el-select>
           </div>
         </el-col>
         <el-col :xs="24" :sm="12" :md="6">
           <div class="search-item">
             <label>专业</label>
-            <el-select v-model="searchForm.major" placeholder="请选择" clearable style="width: 100%">
-              <el-option label="软件技术" value="软件技术" />
-              <el-option label="计算机科学" value="计算机科学" />
-              <el-option label="信息安全" value="信息安全" />
-              <el-option label="大数据技术" value="大数据技术" />
+            <el-select v-model="searchForm.major" placeholder="请选择专业" clearable style="width: 100%">
+              <el-option 
+                v-for="major in majorList" 
+                :key="major" 
+                :label="major" 
+                :value="major"
+              />
             </el-select>
           </div>
         </el-col>
         <el-col :xs="24" :sm="12" :md="6">
           <div class="search-item">
-            <label>学期</label>
-            <el-input v-model="searchForm.semester" placeholder="请输入毕业设计系需学期" clearable />
+            <label>状态</label>
+            <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 100%">
+              <el-option label="进行中" value="active" />
+              <el-option label="已结束" value="finished" />
+              <el-option label="草稿" value="draft" />
+            </el-select>
           </div>
         </el-col>
-        <el-col :xs="24" :sm="24" :md="6">
+        <el-col :xs="24" :sm="12" :md="6">
           <div class="search-item search-buttons-item">
             <div class="search-buttons-inline">
               <el-button type="primary" @click="handleSearch">
@@ -77,7 +84,7 @@
     <div class="table-section">
       <el-table
         ref="tableRef"
-        :data="filteredData"
+        :data="paginatedData"
         border
         stripe
         v-loading="loading"
@@ -182,7 +189,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { Search, Refresh, Plus, EditPen, Delete, Download, Connection } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
@@ -201,8 +208,12 @@ const pageSize = ref(10)
 const searchForm = reactive({
   grade: '',
   major: '',
-  semester: ''
+  status: ''
 })
+
+// 动态筛选选项
+const gradeList = ref([])
+const majorList = ref([])
 
 const selectedRows = ref([])
 const currentRecord = ref(null)
@@ -222,31 +233,33 @@ onMounted(() => {
 async function fetchBatches() {
   loading.value = true
   try {
-    const res = await request.get('/batches', {
-      params: {
-        page: currentPage.value,
-        size: pageSize.value
-      }
-    })
+    const res = await request.get('/batches')
     
-    if (res.data && res.data.records) {
-      // 转换数据格式以匹配前端表格
-      tableData.value = res.data.records.map((batch) => ({
-        batchId: batch.batch_id || batch.batchName,
-        grade: batch.grade || extractGradeFromSemester(batch.batch_name),
-        majorName: batch.major_name || getMajorNameById(batch.major_id),
-        semester: batch.batch_name,
+    if (res.data && Array.isArray(res.data)) {
+      // 转换数据格式以匹配前端表格（后端已返回完整字段）
+      tableData.value = res.data.map((batch) => ({
+        batchId: batch.batch_id,
+        grade: batch.grade || '',
+        majorName: batch.major_name || '未知专业',
+        semester: batch.semester || batch.batch_name || '',
         startDate: batch.start_date ? formatDate(batch.start_date) : null,
         endDate: batch.end_date ? formatDate(batch.end_date) : null,
         defenseWeight: batch.defense_weight || 40,
-        previewWeight: batch.preview_weight || 10,
+        previewWeight: batch.preview_weight || 60,
         studentCount: batch.student_count || 0,
         status: batch.status || 'active',
         // 保存原始数据供详情查看使用
         rawData: batch
       }))
       
-      totalRecords.value = res.data.total || 0
+      // 提取唯一的届次和专业列表（用于筛选下拉框）
+      const grades = [...new Set(tableData.value.map(item => item.grade).filter(g => g))]
+      gradeList.value = grades.sort((a, b) => b - a)
+      
+      const majors = [...new Set(tableData.value.map(item => item.majorName).filter(m => m && m !== '未知专业'))]
+      majorList.value = majors.sort()
+      
+      totalRecords.value = filteredData.value.length
     }
   } catch (error) {
     console.error('获取批次列表失败:', error)
@@ -296,9 +309,25 @@ const filteredData = computed(() => {
   return tableData.value.filter(item => {
     if (searchForm.grade && item.grade !== searchForm.grade) return false
     if (searchForm.major && item.majorName !== searchForm.major) return false
-    if (searchForm.semester && !item.semester.includes(searchForm.semester)) return false
+    if (searchForm.status && item.status !== searchForm.status) return false
     return true
   })
+})
+
+// 监听筛选结果变化，自动更新总数和页码
+watch(filteredData, (newVal) => {
+  totalRecords.value = newVal.length
+  // 如果当前页超出范围，自动回到第一页
+  const maxPage = Math.ceil(newVal.length / pageSize.value) || 1
+  if (currentPage.value > maxPage) {
+    currentPage.value = 1
+  }
+}, { immediate: true })
+
+const paginatedData = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return filteredData.value.slice(start, end)
 })
 
 const formData = reactive({
@@ -324,22 +353,21 @@ function handleSearch() {
   loading.value = true
   currentPage.value = 1
   
-  // 重新从后端获取数据（带筛选条件）
-  fetchBatches().then(() => {
-    const count = filteredData.value.length
-    ElMessage.success(`搜索完成，共找到 ${count} 条记录`)
-  })
+  // 重新计算筛选结果（前端筛选，无需请求后端）
+  totalRecords.value = filteredData.value.length
+  loading.value = false
+  ElMessage.success(`搜索完成，共找到 ${filteredData.value.length} 条记录`)
 }
 
 function handleReset() {
   searchForm.grade = ''
   searchForm.major = ''
-  searchForm.semester = ''
+  searchForm.status = ''
   currentPage.value = 1
   pageSize.value = 10
   
-  // 重新获取所有数据
-  fetchBatches()
+  // 重新计算筛选结果
+  totalRecords.value = filteredData.value.length
   ElMessage.info('已重置搜索条件')
 }
 
@@ -390,7 +418,18 @@ function handleEdit() {
 
 function handleEditRow(row) {
   dialogTitle.value = '修改批次'
-  Object.assign(formData, { ...row })
+  currentRecord.value = row
+  
+  // 正确填充表单（从原始数据或当前显示数据）
+  formData.batchId = row.batchId
+  formData.grade = row.grade || ''
+  formData.majorName = row.majorName || ''
+  formData.semester = row.semester || ''
+  formData.startDate = row.startDate || ''
+  formData.endDate = row.endDate || ''
+  formData.defenseWeight = row.defenseWeight || 40
+  formData.previewWeight = row.previewWeight || 60
+  
   dialogVisible.value = true
 }
 
@@ -400,8 +439,8 @@ async function handleDelete() {
     return
   }
   ElMessageBox.confirm(
-    `确定要删除选中的 ${selectedRows.value.length} 条数据吗？<br/><br/>
-     <small style="color: #f56c6c;">⚠️ 此操作将从数据库中永久删除，无法恢复！</small>`,
+    `确定要删除选中的 ${selectedRows.value.length} 条批次数据吗？<br/><br/>
+     <small style="color: #f56c6c;">警告：此操作将同时删除这些批次下的所有师生关系和选题记录，无法恢复！</small>`,
     '警告',
     {
       confirmButtonText: '确定删除',
@@ -420,12 +459,12 @@ async function handleDelete() {
       
       // 删除成功后重新获取数据
       await fetchBatches()
-      
-      ElMessage.success(`✅ 成功删除 ${selectedRows.value.length} 条批次数据！数据已从数据库移除`)
+
+      ElMessage.success(`成功删除 ${selectedRows.value.length} 个批次及其关联数据`)
       selectedRows.value = []
     } catch (error) {
       console.error('删除失败:', error)
-      ElMessage.error('❌ 删除失败，请重试')
+      ElMessage.error('删除失败，请重试')
     }
   }).catch(() => {})
 }
@@ -433,7 +472,7 @@ async function handleDelete() {
 async function handleDeleteRow(row) {
   ElMessageBox.confirm(
     `确定要删除批次 ${row.batchId} 吗？<br/><br/>
-     <small style="color: #f56c6c;">⚠️ 该操作不可撤销！</small>`,
+     <small style="color: #f56c6c;">警告：此操作将同时删除该批次下的所有师生关系和选题记录，无法恢复！</small>`,
     '警告',
     {
       confirmButtonText: '确定删除',
@@ -448,11 +487,11 @@ async function handleDeleteRow(row) {
       
       // 删除成功后重新获取数据
       await fetchBatches()
-      
-      ElMessage.success('✅ 删除成功！数据已从数据库移除')
+
+      ElMessage.success(`成功删除批次 ${row.batchId} 及其关联数据`)
     } catch (error) {
       console.error('删除失败:', error)
-      ElMessage.error('❌ 删除失败，请重试')
+      ElMessage.error('删除失败，请重试')
     }
   }).catch(() => {})
 }
@@ -506,17 +545,23 @@ async function handleSubmit() {
   formRef.value?.validate(async (valid) => {
     if (valid) {
       try {
+        // 专业名称到ID的映射
+        const majorIdMap = { '软件技术': 1, '计算机科学': 2, '信息安全': 3, '大数据技术': 4, '人工智能': 5 }
+        
         if (dialogTitle.value === '新增批次') {
-          // 调用后端API新增批次
+          // 调用后端API新增批次（字段映射匹配后端实体）
           const batchData = {
-            batchName: formData.semester,
-            grade: formData.grade,
-            majorName: formData.majorName,
+            majorId: majorIdMap[formData.majorName] || 1,
+            batchName: formData.semester + '毕业设计',
+            batchCode: new Date().getFullYear() + '-' + (majorIdMap[formData.majorName] || 1) + '-BATCH',
             semester: formData.semester,
             startDate: formData.startDate,
             endDate: formData.endDate,
-            defenseWeight: formData.defenseWeight,
-            previewWeight: formData.previewWeight
+            defenseRatio: formData.defenseWeight / 100,  // 百分比转小数
+            reportRatio: formData.previewWeight / 100,   // 百分比转小数
+            status: 'draft',
+            currentPhase: 'preparation',
+            description: `${formData.majorName}专业${formData.grade}届毕业设计批次`
           }
           
           await request.post('/batches', batchData)
@@ -530,27 +575,29 @@ async function handleSubmit() {
           // 调用后端API修改批次
           const batchId = currentRecord.value?.rawData?.batch_id || formData.batchId
           const updateData = {
-            batchName: formData.semester,
-            grade: formData.grade,
-            majorName: formData.majorName,
+            majorId: majorIdMap[formData.majorName] || currentRecord.value?.rawData?.major_id || 1,
+            batchName: formData.batchName || (formData.semester + '毕业设计'),
+            batchCode: currentRecord.value?.rawData?.batch_code || '',
             semester: formData.semester,
             startDate: formData.startDate,
             endDate: formData.endDate,
-            defenseWeight: formData.defenseWeight,
-            previewWeight: formData.previewWeight
+            defenseRatio: formData.defenseWeight / 100,  // 百分比转小数
+            reportRatio: formData.previewWeight / 100,   // 百分比转小数
+            status: currentRecord.value?.status || 'active',
+            currentPhase: currentRecord.value?.currentPhase || 'preparation'
           }
           
           await request.put(`/batches/${batchId}`, updateData)
           
           // 修改成功后重新获取数据
           await fetchBatches()
-          
+
           dialogVisible.value = false
-          ElMessage.success('✅ 修改批次成功！数据已同步到数据库')
+          ElMessage.success('修改成功')
         }
       } catch (error) {
         console.error('操作失败:', error)
-        ElMessage.error('❌ 操作失败，请重试')
+        ElMessage.error('❌ 操作失败：' + (error.response?.data?.message || error.message || '请重试'))
       }
     }
   })

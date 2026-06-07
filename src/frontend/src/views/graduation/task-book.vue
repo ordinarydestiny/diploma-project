@@ -367,7 +367,7 @@ async function handleDeliverTaskbook(row) {
       // 下达成功后重新获取数据
       await fetchTaskBooks()
       
-      ElMessage.success(`✅ 已成功为学生 ${row.studentName} 下达任务书！数据已同步到数据库`)
+      ElMessage.success(`已成功为学生 ${row.studentName} 下达任务书！数据已同步到数据库`)
     } catch (error) {
       console.error('下达任务书失败:', error)
       ElMessage.error('❌ 下达任务书失败，请重试')
@@ -378,8 +378,7 @@ async function handleDeliverTaskbook(row) {
 async function handleResetTaskbookStatus(row) {
   ElMessageBox.confirm(
     `确定要重置学生 "${row.studentName}" 的任务书状态吗？<br/><br/>
-     <small style="color: #909399;">当前状态：${row.taskbookStatus} → 将变为"未下达"</small>
-     <br/><small style="color: #f56c6c;">⚠️ 此操作将删除已下达的任务书记录！</small>`,
+     <small style="color: #909399;">当前状态：${row.taskbookStatus} → 将变为"未下达"</small>`,
     '确认重置',
     {
       confirmButtonText: '确定重置',
@@ -389,15 +388,15 @@ async function handleResetTaskbookStatus(row) {
     }
   ).then(async () => {
     try {
-      // 调用后端API删除任务书（重置效果）
+      // 调用后端API重置任务书状态（保留记录，只更新状态）
       if (row.id) {
-        await request.delete(`/taskbooks/${row.id}`)
+        await request.put(`/taskbooks/${row.id}/reset`)
       }
-      
+
       // 重置成功后重新获取数据
       await fetchTaskBooks()
-      
-      ElMessage.success(`✅ 已成功重置学生 ${row.studentName} 的任务书状态！`)
+
+      ElMessage.success(`已成功重置学生 ${row.studentName} 的任务书状态为"未下达"！`)
     } catch (error) {
       console.error('重置任务书失败:', error)
       ElMessage.error('❌ 重置任务书失败，请重试')

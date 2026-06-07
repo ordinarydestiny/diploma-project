@@ -78,4 +78,9 @@ public interface TeacherDataService {
      * 获取所有题目分类列表（从topics表的category字段去重）
      */
     List<String> getTopicCategories(Integer teacherId);
+
+    /**
+     * 获取可纳入师生关系的学生列表（排除已有关系的学生）
+     */
+    List<Map<String, Object>> getAvailableStudentsForRelation(Integer teacherId);
 }
