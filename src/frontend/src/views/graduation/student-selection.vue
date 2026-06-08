@@ -88,7 +88,7 @@
             <el-tag :type="getStatusType(row.status)" size="small">{{ row.status }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="rejectReason" label="毕业设计题目驳回理由" min-width="140" align="center" show-overflow-tooltip />
+        <el-table-column prop="rejectReason" label="毕业设计题目驳回/通过理由" min-width="180" align="center" show-overflow-tooltip />
         <el-table-column label="操作" width="160" fixed="right" align="center">
           <template #default="{ row }">
             <el-button type="primary" link size="small" @click="handleViewDetail(row)">
@@ -132,8 +132,8 @@
         <el-descriptions-item label="题目描述" :span="2">
           <div style="white-space: pre-wrap; line-height: 1.6;">{{ currentRecord?.topicDescription }}</div>
         </el-descriptions-item>
-        <el-descriptions-item v-if="currentRecord?.rejectReason" label="驳回理由" :span="2">
-          <div style="color: #f56c6c; white-space: pre-wrap; line-height: 1.6;">{{ currentRecord?.rejectReason }}</div>
+        <el-descriptions-item v-if="currentRecord?.rejectReason" :label="currentRecord?.status === '已通过' ? '通过理由' : '驳回理由'" :span="2">
+          <div :style="{ color: currentRecord?.status === '已通过' ? '#67c23a' : '#f56c6c', whiteSpace: 'pre-wrap', lineHeight: 1.6 }">{{ currentRecord?.rejectReason }}</div>
         </el-descriptions-item>
       </el-descriptions>
       <template #footer>
@@ -342,23 +342,35 @@ async function handleResetStatus(row) {
  */
 async function handleApproveSelection() {
   if (!currentRecord.value) return
-  
-  try {
-    // 调用后端API审核通过
-    await request.put(`/selections/${currentRecord.value.id}/review`, {
-      status: 'approved',  // 通过
-      comment: '审核通过'
-    })
-    
-    // 审核成功后关闭弹窗并刷新数据
-    detailDialogVisible.value = false
-    await fetchSelections()
-    
-    ElMessage.success(`✅ 已通过学生 ${currentRecord.value.studentName} 的选题！`)
-  } catch (error) {
-    console.error('审核通过失败:', error)
-    ElMessage.error('❌ 审核通过失败，请重试')
-  }
+
+  ElMessageBox.prompt('请输入通过理由', '通过选题', {
+    confirmButtonText: '确定通过',
+    cancelButtonText: '取消',
+    inputType: 'textarea',
+    inputPlaceholder: '请输入通过理由（必填）',
+    inputValidator: (value) => {
+      if (!value || !value.trim()) {
+        return '通过理由不能为空'
+      }
+    }
+  }).then(async ({ value }) => {
+    try {
+      // 调用后端API审核通过
+      await request.put(`/selections/${currentRecord.value.id}/review`, {
+        status: 'approved',  // 通过
+        comment: value
+      })
+
+      // 审核成功后关闭弹窗并刷新数据
+      detailDialogVisible.value = false
+      await fetchSelections()
+
+      ElMessage.success(`✅ 已通过学生 ${currentRecord.value.studentName} 的选题！`)
+    } catch (error) {
+      console.error('审核通过失败:', error)
+      ElMessage.error('❌ 审核通过失败，请重试')
+    }
+  }).catch(() => {})
 }
 
 /**

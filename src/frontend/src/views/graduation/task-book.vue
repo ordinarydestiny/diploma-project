@@ -89,6 +89,18 @@
             <el-tag :type="getTaskbookStatusType(row.taskbookStatus)" size="small">{{ row.taskbookStatus }}</el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="是否接收毕业设计任务书" width="180" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.confirmStatus === '已接收' ? 'success' : 'info'" size="small">
+              {{ row.confirmStatus || '未接收' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="confirmTime" label="接收时间" width="180" align="center">
+          <template #default="{ row }">
+            {{ row.confirmTime || '-' }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="150" fixed="right" align="center">
           <template #default="{ row }">
             <div class="action-buttons-wrapper">
@@ -185,6 +197,8 @@ async function fetchTaskBooks() {
         topicStatus: formatTopicStatus(taskbook.selection_status),
         deliverTime: taskbook.issued_at ? formatDate(taskbook.issued_at) : null,
         taskbookStatus: formatTaskbookStatus(taskbook.taskbook_status),
+        confirmStatus: taskbook.confirm_by ? '已接收' : '未接收',
+        confirmTime: taskbook.confirm_at ? formatDate(taskbook.confirm_at) : null,
         taskContent: taskbook.content || '',
         selectionId: taskbook.selection_id,
         version: taskbook.version,
@@ -378,7 +392,8 @@ async function handleDeliverTaskbook(row) {
 async function handleResetTaskbookStatus(row) {
   ElMessageBox.confirm(
     `确定要重置学生 "${row.studentName}" 的任务书状态吗？<br/><br/>
-     <small style="color: #909399;">当前状态：${row.taskbookStatus} → 将变为"未下达"</small>`,
+     <small style="color: #909399;">当前状态：${row.taskbookStatus} → 将变为"未下达"</small><br/>
+     <small style="color: #E6A23C;">同时将重置学生的确认接收状态</small>`,
     '确认重置',
     {
       confirmButtonText: '确定重置',
@@ -388,7 +403,7 @@ async function handleResetTaskbookStatus(row) {
     }
   ).then(async () => {
     try {
-      // 调用后端API重置任务书状态（保留记录，只更新状态）
+      // 调用后端API重置任务书状态（包括确认信息）
       if (row.id) {
         await request.put(`/taskbooks/${row.id}/reset`)
       }
@@ -396,10 +411,10 @@ async function handleResetTaskbookStatus(row) {
       // 重置成功后重新获取数据
       await fetchTaskBooks()
 
-      ElMessage.success(`已成功重置学生 ${row.studentName} 的任务书状态为"未下达"！`)
+      ElMessage.success(`已成功重置学生 ${row.studentName} 的任务书及确认状态`)
     } catch (error) {
       console.error('重置任务书失败:', error)
-      ElMessage.error('❌ 重置任务书失败，请重试')
+      ElMessage.error('重置任务书失败：' + (error.response?.data?.message || error.message))
     }
   }).catch(() => {})
 }

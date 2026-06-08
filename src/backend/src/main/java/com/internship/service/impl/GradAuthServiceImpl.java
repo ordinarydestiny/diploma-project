@@ -9,8 +9,11 @@ import com.internship.service.GradAuthService;
 import com.internship.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
 
 @Slf4j
 @Service
@@ -19,6 +22,7 @@ public class GradAuthServiceImpl extends ServiceImpl<UserMapper, User> implement
     
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final JdbcTemplate jdbcTemplate;
     
     private static final String DEV_TEST_PASSWORD = "123456";
 
@@ -62,6 +66,51 @@ public class GradAuthServiceImpl extends ServiceImpl<UserMapper, User> implement
         response.setRealName(user.getRealName());
         response.setRole(user.getRole());
         response.setCurrentRoleId(user.getCurrentRoleId());
+        
+        // 【新增】填充完整用户信息
+        try {
+            response.setPhone(user.getPhone() != null ? user.getPhone() : "");
+            response.setEmail(user.getEmail() != null ? user.getEmail() : "");
+            response.setCollegeId(user.getCollegeId());
+            response.setMajorId(user.getMajorId());
+            response.setClassName(user.getClassName() != null ? user.getClassName() : "");
+            
+            // 查询学院名称（如果collegeId不为空）
+            if (user.getCollegeId() != null && jdbcTemplate != null) {
+                try {
+                    String collegeNameSql = "SELECT college_name FROM colleges WHERE college_id = ?";
+                    String collegeName = jdbcTemplate.queryForObject(collegeNameSql, String.class, user.getCollegeId());
+                    response.setCollegeName(collegeName != null ? collegeName : "");
+                } catch (Exception e) {
+                    log.warn("查询学院名称失败: collegeId={}, error={}", user.getCollegeId(), e.getMessage());
+                    response.setCollegeName("");
+                }
+            } else {
+                response.setCollegeName("");
+            }
+            
+            // 查询专业名称（如果majorId不为空）
+            if (user.getMajorId() != null && jdbcTemplate != null) {
+                try {
+                    String majorNameSql = "SELECT major_name FROM majors WHERE major_id = ?";
+                    String majorName = jdbcTemplate.queryForObject(majorNameSql, String.class, user.getMajorId());
+                    response.setMajorName(majorName != null ? majorName : "");
+                } catch (Exception e) {
+                    log.warn("查询专业名称失败: majorId={}, error={}", user.getMajorId(), e.getMessage());
+                    response.setMajorName("");
+                }
+            } else {
+                response.setMajorName("");
+            }
+        } catch (Exception e) {
+            log.error("填充用户详细信息时出错: {}", e.getMessage(), e);
+            // 即使填充详细信息失败，也不影响登录，使用默认值
+            response.setPhone("");
+            response.setEmail("");
+            response.setCollegeName("");
+            response.setMajorName("");
+            response.setClassName("");
+        }
         
         return response;
     }

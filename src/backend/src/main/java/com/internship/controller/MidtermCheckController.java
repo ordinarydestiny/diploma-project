@@ -26,44 +26,49 @@ public class MidtermCheckController {
     @PostMapping("/submit")
     @Operation(summary = "学生提交中期报告")
     @PreAuthorize("hasRole('student')")
+    @LogOperation("提交中期检查报告")
     public Result<MidtermCheck> submit(
             @RequestParam Integer selectionId,
-            @RequestParam Integer fileId) {
-        
+            @RequestParam(required = false) Integer fileId,
+            @RequestParam(defaultValue = "0") Integer progress) {
+
         Integer studentId = jwtUtil.getCurrentUserId() != null ? jwtUtil.getCurrentUserId().intValue() : null;
-        
-        // 将当前版本标记为非最新
+
+        // 查找当前最新的记录
         LambdaQueryWrapper<MidtermCheck> wrapper = new LambdaQueryWrapper<MidtermCheck>()
             .eq(MidtermCheck::getSelectionId, selectionId)
             .eq(MidtermCheck::getIsCurrent, true);
         MidtermCheck currentCheck = midtermCheckMapper.selectOne(wrapper);
-        
-        if (currentCheck != null && !"rejected".equals(currentCheck.getStatus())) {
-            throw new RuntimeException("已有待审核或已通过的中期报告");
+
+        // 只有已通过的报告才不允许重新提交
+        if (currentCheck != null && "approved".equals(currentCheck.getStatus())) {
+            return Result.fail(400, "已有通过的中期报告，无法重新提交。如需修改，请联系指导教师。");
         }
-        
+
+        // 如果存在当前记录（待审核/已驳回），将其标记为非最新
         if (currentCheck != null) {
             currentCheck.setIsCurrent(false);
             midtermCheckMapper.updateById(currentCheck);
         }
-        
+
         // 查询最大版本号
         LambdaQueryWrapper<MidtermCheck> versionWrapper = new LambdaQueryWrapper<MidtermCheck>()
             .eq(MidtermCheck::getSelectionId, selectionId)
             .orderByDesc(MidtermCheck::getVersion)
             .last("LIMIT 1");
         MidtermCheck lastVersion = midtermCheckMapper.selectOne(versionWrapper);
-        
+
         int newVersion = (lastVersion != null) ? lastVersion.getVersion() + 1 : 1;
-        
+
         MidtermCheck check = new MidtermCheck();
         check.setSelectionId(selectionId);
         check.setFileId(fileId);
+        check.setProgress(progress);
         check.setSubmitTime(java.time.LocalDateTime.now());
         check.setVersion(newVersion);
         check.setIsCurrent(true);
         check.setStatus("pending");
-        
+
         midtermCheckMapper.insert(check);
         return Result.success(check);
     }

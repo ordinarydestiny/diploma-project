@@ -2,6 +2,7 @@ package com.internship.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.internship.dto.SelectionSubmitDTO;
@@ -109,15 +110,14 @@ public class SelectionServiceImpl extends ServiceImpl<StudentSelectionMapper, St
     @Transactional
     public void resetSelection(Integer selectionId, String reason) {
         StudentSelection selection = getById(selectionId);
-        
-        // 重置为待审核状态，让学生可以重新提交或等待教师重新审核
-        selection.setStatus("pending");
-        selection.setReviewComment(null); // 清空之前的审核意见
-        
-        updateById(selection);
-        
-        sendNotificationToStudent(selection.getStudentId(), "选题已重置", 
-            "教师/管理员已重置你的选题状态为'待审核'。原因：" + reason);
+
+        // 使用UpdateWrapper强制更新字段为null（MyBatis-Plus默认忽略null值）
+        UpdateWrapper<StudentSelection> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("selection_id", selectionId)
+                     .set("status", "pending")
+                     .set("review_comment", null);  // 强制清空驳回/通过理由
+
+        update(updateWrapper);
         
         log.info("重置选题{}状态为待审核，原因：{}", selectionId, reason);
     }

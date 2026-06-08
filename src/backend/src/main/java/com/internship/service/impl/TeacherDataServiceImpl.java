@@ -446,46 +446,49 @@ public class TeacherDataServiceImpl implements TeacherDataService {
     @Override
     public List<Map<String, Object>> getAllMidtermChecks(Integer teacherId) {
         String sql = """
-            SELECT 
-                mc.check_id,
-                mc.selection_id,
-                mc.file_id,
-                mc.submit_time,
-                mc.version,
-                mc.progress,
-                mc.status,
-                mc.reviewer_id,
-                mc.review_time,
-                mc.review_comment,
-                mc.guide_file_id,
-                mc.created_at,
-                mc.updated_at,
-                u.real_name as student_name,
-                u.username as student_no,
-                u.class_name,
-                t.topic_name,
-                f.original_name as file_name,
-                ui.real_name as reviewer_name,
-                (SELECT GROUP_CONCAT(DISTINCT tchr.real_name SEPARATOR '、')
-                 FROM teacher_student_relations tsr2
-                 INNER JOIN users tchr ON tsr2.teacher_id = tchr.user_id
-                 WHERE tsr2.student_id = ss.student_id AND tsr2.batch_id = ss.batch_id
-                ) as teacher_name
-            FROM midterm_checks mc
-            INNER JOIN student_selections ss ON mc.selection_id = ss.selection_id
-            INNER JOIN users u ON ss.student_id = u.user_id
-            INNER JOIN topics t ON ss.topic_id = t.topic_id
-            LEFT JOIN files f ON mc.file_id = f.file_id
-            LEFT JOIN users ui ON mc.reviewer_id = ui.user_id
-            WHERE EXISTS (
-                SELECT 1 FROM teacher_student_relations tsr 
-                WHERE tsr.student_id = ss.student_id 
-                AND tsr.batch_id = ss.batch_id 
-                AND tsr.teacher_id = ?
-            )
-            ORDER BY COALESCE(mc.submit_time, mc.created_at) DESC, mc.version DESC
+            SELECT * FROM (
+                SELECT 
+                    mc.check_id,
+                    mc.selection_id,
+                    mc.file_id,
+                    mc.submit_time,
+                    mc.version,
+                    mc.progress,
+                    mc.status,
+                    mc.reviewer_id,
+                    mc.review_time,
+                    mc.review_comment,
+                    mc.guide_file_id,
+                    mc.created_at,
+                    mc.updated_at,
+                    u.real_name as student_name,
+                    u.username as student_no,
+                    u.class_name,
+                    t.topic_name,
+                    f.original_name as file_name,
+                    ui.real_name as reviewer_name,
+                    (SELECT GROUP_CONCAT(DISTINCT tchr.real_name SEPARATOR '、')
+                     FROM teacher_student_relations tsr2
+                     INNER JOIN users tchr ON tsr2.teacher_id = tchr.user_id
+                     WHERE tsr2.student_id = ss.student_id AND tsr2.batch_id = ss.batch_id
+                    ) as teacher_name,
+                    ROW_NUMBER() OVER (PARTITION BY ss.student_id ORDER BY mc.version DESC) as rn
+                FROM midterm_checks mc
+                INNER JOIN student_selections ss ON mc.selection_id = ss.selection_id
+                INNER JOIN users u ON ss.student_id = u.user_id
+                INNER JOIN topics t ON ss.topic_id = t.topic_id
+                LEFT JOIN files f ON mc.file_id = f.file_id
+                LEFT JOIN users ui ON mc.reviewer_id = ui.user_id
+                WHERE EXISTS (
+                    SELECT 1 FROM teacher_student_relations tsr 
+                    WHERE tsr.student_id = ss.student_id 
+                    AND tsr.batch_id = ss.batch_id 
+                    AND tsr.teacher_id = ?
+                )
+            ) t WHERE rn = 1
+            ORDER BY COALESCE(t.submit_time, t.created_at) DESC, t.student_no ASC
         """;
-        
+
         return jdbcTemplate.queryForList(sql, teacherId);
     }
 
@@ -653,58 +656,64 @@ public class TeacherDataServiceImpl implements TeacherDataService {
         StringBuilder sqlBuilder;
         
         if ("college_admin".equals(userRole) || "major_admin".equals(userRole)) {
-            // 院管/专业负责人：查看所有学生的签到记录
+            // 院管/专业负责人：查看所有学生的签到记录（去重）
             sqlBuilder = new StringBuilder("""
-                SELECT
-                    u.user_id as student_id,
-                    u.username as student_no,
-                    u.real_name as student_name,
-                    u.class_name,
-                    (SELECT GROUP_CONCAT(DISTINCT tchr.real_name SEPARATOR '、')
-                     FROM teacher_student_relations tsr2
-                     INNER JOIN users tchr ON tsr2.teacher_id = tchr.user_id
-                     WHERE tsr2.student_id = u.user_id
-                    ) as teacher_name,
-                    (SELECT pb2.batch_name FROM teacher_student_relations tsr_main 
-                     LEFT JOIN project_batches pb2 ON tsr_main.batch_id = pb2.batch_id 
-                     WHERE tsr_main.student_id = u.user_id LIMIT 1) as batch_name,
-                    (SELECT DATEDIFF(pb3.end_date, pb3.start_date) + 1 FROM teacher_student_relations tsr_b 
-                     LEFT JOIN project_batches pb3 ON tsr_b.batch_id = pb3.batch_id 
-                     WHERE tsr_b.student_id = u.user_id LIMIT 1) as total_days,
-                    (SELECT COUNT(*) FROM sign_ins si WHERE si.student_id = u.user_id AND si.sign_status = 'normal') as checked_days,
-                    (SELECT CONCAT(si_last.sign_date, ' ', si_last.sign_time) FROM sign_ins si_last 
-                     WHERE si_last.student_id = u.user_id ORDER BY si_last.created_at DESC LIMIT 1) as last_sign_time,
-                    (SELECT si_loc.location FROM sign_ins si_loc 
-                     WHERE si_loc.student_id = u.user_id ORDER BY si_loc.created_at DESC LIMIT 1) as location
-                FROM users u
-                INNER JOIN teacher_student_relations tsr ON tsr.student_id = u.user_id
-                WHERE u.role = 'student'
+                SELECT * FROM (
+                    SELECT
+                        u.user_id as student_id,
+                        u.username as student_no,
+                        u.real_name as student_name,
+                        u.class_name,
+                        (SELECT GROUP_CONCAT(DISTINCT tchr.real_name SEPARATOR '、')
+                         FROM teacher_student_relations tsr2
+                         INNER JOIN users tchr ON tsr2.teacher_id = tchr.user_id
+                         WHERE tsr2.student_id = u.user_id
+                        ) as teacher_name,
+                        (SELECT pb2.batch_name FROM teacher_student_relations tsr_main 
+                         LEFT JOIN project_batches pb2 ON tsr_main.batch_id = pb2.batch_id 
+                         WHERE tsr_main.student_id = u.user_id LIMIT 1) as batch_name,
+                        (SELECT DATEDIFF(pb3.end_date, pb3.start_date) + 1 FROM teacher_student_relations tsr_b 
+                         LEFT JOIN project_batches pb3 ON tsr_b.batch_id = pb3.batch_id 
+                         WHERE tsr_b.student_id = u.user_id LIMIT 1) as total_days,
+                        (SELECT COUNT(*) FROM sign_ins si WHERE si.student_id = u.user_id AND si.sign_status = 'normal') as checked_days,
+                        (SELECT CONCAT(si_last.sign_date, ' ', si_last.sign_time) FROM sign_ins si_last 
+                         WHERE si_last.student_id = u.user_id ORDER BY si_last.created_at DESC LIMIT 1) as last_sign_time,
+                        (SELECT si_loc.location FROM sign_ins si_loc 
+                         WHERE si_loc.student_id = u.user_id ORDER BY si_loc.created_at DESC LIMIT 1) as location,
+                        ROW_NUMBER() OVER (PARTITION BY u.user_id ORDER BY u.user_id) as rn
+                    FROM users u
+                    INNER JOIN teacher_student_relations tsr ON tsr.student_id = u.user_id
+                    WHERE u.role = 'student'
+                ) t WHERE rn = 1
             """);
         } else {
-            // 普通教师：只查看自己指导的学生的签到记录
+            // 普通教师：只查看自己指导的学生的签到记录（去重）
             sqlBuilder = new StringBuilder("""
-                SELECT
-                    u.user_id as student_id,
-                    u.username as student_no,
-                    u.real_name as student_name,
-                    u.class_name,
-                    (SELECT GROUP_CONCAT(DISTINCT tchr.real_name SEPARATOR '、')
-                     FROM teacher_student_relations tsr2
-                     INNER JOIN users tchr ON tsr2.teacher_id = tchr.user_id
-                     WHERE tsr2.student_id = u.user_id AND tsr2.teacher_id = ?
-                    ) as teacher_name,
-                    pb.batch_name,
-                    DATEDIFF(pb.end_date, pb.start_date) + 1 as total_days,
-                    (SELECT COUNT(*) FROM sign_ins si2 
-                     WHERE si2.student_id = u.user_id AND si2.sign_status = 'normal') as checked_days,
-                    (SELECT CONCAT(si3.sign_date, ' ', si3.sign_time) FROM sign_ins si3 
-                     WHERE si3.student_id = u.user_id ORDER BY si3.created_at DESC LIMIT 1) as last_sign_time,
-                    (SELECT si4.location FROM sign_ins si4 
-                     WHERE si4.student_id = u.user_id ORDER BY si4.created_at DESC LIMIT 1) as location
-                FROM users u
-                INNER JOIN teacher_student_relations tsr ON tsr.student_id = u.user_id
-                LEFT JOIN project_batches pb ON tsr.batch_id = pb.batch_id
-                WHERE tsr.teacher_id = ?
+                SELECT * FROM (
+                    SELECT
+                        u.user_id as student_id,
+                        u.username as student_no,
+                        u.real_name as student_name,
+                        u.class_name,
+                        (SELECT GROUP_CONCAT(DISTINCT tchr.real_name SEPARATOR '、')
+                         FROM teacher_student_relations tsr2
+                         INNER JOIN users tchr ON tsr2.teacher_id = tchr.user_id
+                         WHERE tsr2.student_id = u.user_id AND tsr2.teacher_id = ?
+                        ) as teacher_name,
+                        pb.batch_name,
+                        DATEDIFF(pb.end_date, pb.start_date) + 1 as total_days,
+                        (SELECT COUNT(*) FROM sign_ins si2 
+                         WHERE si2.student_id = u.user_id AND si2.sign_status = 'normal') as checked_days,
+                        (SELECT CONCAT(si3.sign_date, ' ', si3.sign_time) FROM sign_ins si3 
+                         WHERE si3.student_id = u.user_id ORDER BY si3.created_at DESC LIMIT 1) as last_sign_time,
+                        (SELECT si4.location FROM sign_ins si4 
+                         WHERE si4.student_id = u.user_id ORDER BY si4.created_at DESC LIMIT 1) as location,
+                        ROW_NUMBER() OVER (PARTITION BY u.user_id ORDER BY u.user_id) as rn
+                    FROM users u
+                    INNER JOIN teacher_student_relations tsr ON tsr.student_id = u.user_id
+                    LEFT JOIN project_batches pb ON tsr.batch_id = pb.batch_id
+                    WHERE tsr.teacher_id = ?
+                ) t WHERE rn = 1
             """);
         }
         

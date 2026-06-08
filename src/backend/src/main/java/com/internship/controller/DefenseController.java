@@ -45,8 +45,8 @@ public class DefenseController {
     }
 
     @PutMapping("/{defenseId}/review")
-    @Operation(summary = "教师审核/修改答辩成绩")
-    @PreAuthorize("hasRole('teacher')")
+    @Operation(summary = "教师/管理员审核/修改答辩成绩")
+    @PreAuthorize("hasAnyRole('college_admin', 'major_admin', 'teacher')")
     public Result<Void> review(@PathVariable Integer defenseId,
                                 @RequestParam String status,
                                 @RequestParam String comment) {

@@ -316,13 +316,32 @@ function handleDialogApprove() {
     cancelButtonText: '取消',
     inputType: 'textarea',
     inputPlaceholder: '请输入审核意见（选填）'
-  }).then(({ value }) => {
-    const index = tableData.value.findIndex(item => item.id === currentRecord.value.id)
-    if (index > -1) {
-      tableData.value[index].status = '已通过'
-      tableData.value[index].comment = value || '审核通过'
-      currentRecord.value = tableData.value[index]
-      ElMessage.success(`已通过学生 ${currentRecord.value.studentName} 的中期检查`)
+  }).then(async ({ value }) => {
+    try {
+      // 调用后端API审核通过
+      await request.put(`/midterm-checks/${currentRecord.value.id}/review`, null, {
+        params: {
+          status: 'approved',  // 通过状态
+          comment: value || '审核通过'
+        }
+      })
+
+      // 更新前端数据
+      const index = tableData.value.findIndex(item => item.id === currentRecord.value.id)
+      if (index > -1) {
+        tableData.value[index].status = '已通过'
+        tableData.value[index].comment = value || '审核通过'
+        currentRecord.value = tableData.value[index]
+        detailDialogVisible.value = false
+      }
+
+      ElMessage.success(`✅ 已通过学生 ${currentRecord.value.studentName} 的中期检查`)
+      
+      // 刷新列表数据
+      await fetchMidtermChecks()
+    } catch (error) {
+      console.error('审核通过失败:', error)
+      ElMessage.error('❌ 审核通过失败，请重试')
     }
   }).catch(() => {})
 }
@@ -340,13 +359,32 @@ function handleDialogReject() {
         return '驳回理由不能为空'
       }
     }
-  }).then(({ value }) => {
-    const index = tableData.value.findIndex(item => item.id === currentRecord.value.id)
-    if (index > -1) {
-      tableData.value[index].status = '需修改'
-      tableData.value[index].comment = value
-      currentRecord.value = tableData.value[index]
-      ElMessage.success(`已将学生 ${currentRecord.value.studentName} 的中期检查驳回修改`)
+  }).then(async ({ value }) => {
+    try {
+      // 调用后端API驳回
+      await request.put(`/midterm-checks/${currentRecord.value.id}/review`, null, {
+        params: {
+          status: 'rejected',  // 驳回状态
+          comment: value
+        }
+      })
+
+      // 更新前端数据
+      const index = tableData.value.findIndex(item => item.id === currentRecord.value.id)
+      if (index > -1) {
+        tableData.value[index].status = '需修改'
+        tableData.value[index].comment = value
+        currentRecord.value = tableData.value[index]
+        detailDialogVisible.value = false
+      }
+
+      ElMessage.success(`✅ 已将学生 ${currentRecord.value.studentName} 的中期检查驳回修改`)
+      
+      // 刷新列表数据
+      await fetchMidtermChecks()
+    } catch (error) {
+      console.error('驳回失败:', error)
+      ElMessage.error('❌ 驳回失败，请重试')
     }
   }).catch(() => {})
 }

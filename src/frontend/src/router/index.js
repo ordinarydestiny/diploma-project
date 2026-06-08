@@ -112,7 +112,7 @@ const menuRoutes = computed(() => {
 })
 
 router.beforeEach((to, from, next) => {
-  document.title = to.meta.title ? `${to.meta.title} - 顶岗实习系统` : '顶岗实习系统'
+  document.title = to.meta.title ? `${to.meta.title} - 毕设系统` : '毕设系统'
   const token = localStorage.getItem('token')
   if (to.meta.requiresAuth === false) {
     next()

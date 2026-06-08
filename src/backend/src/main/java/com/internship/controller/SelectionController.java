@@ -50,8 +50,8 @@ public class SelectionController {
     }
 
     @PutMapping("/{selectionId}/review")
-    @Operation(summary = "教师审核选题")
-    @PreAuthorize("hasRole('teacher')")
+    @Operation(summary = "教师/管理员审核选题")
+    @PreAuthorize("hasAnyRole('college_admin', 'major_admin', 'teacher')")
     @LogOperation("审核选题")
     public Result<Void> review(@PathVariable Integer selectionId, 
                                @RequestBody SelectionReviewDTO dto) {

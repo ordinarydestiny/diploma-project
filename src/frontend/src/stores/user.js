@@ -58,7 +58,13 @@ export const useUserStore = defineStore('user', () => {
       role: data.role,
       phone: data.phone || '',
       email: data.email || '',
-      deptId: data.deptId || null
+      deptId: data.deptId || null,
+      // 【新增】完整用户信息字段
+      collegeId: data.collegeId || null,
+      majorId: data.majorId || null,
+      className: data.className || '',
+      collegeName: data.collegeName || '',  // 学院名称
+      majorName: data.majorName || ''       // 专业名称
     })
     setRoleCode(data.role)
     
@@ -93,7 +99,13 @@ export const useUserStore = defineStore('user', () => {
       role: data.role,
       phone: data.phone || '',
       email: data.email || '',
-      deptId: data.deptId || null
+      deptId: data.deptId || null,
+      // 【新增】完整用户信息字段
+      collegeId: data.collegeId || null,
+      majorId: data.majorId || null,
+      className: data.className || '',
+      collegeName: data.collegeName || '',  // 学院名称
+      majorName: data.majorName || ''       // 专业名称
     })
     setRoleCode(data.role)
   }

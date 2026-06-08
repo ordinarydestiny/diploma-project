@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>毕业设计中期检查报告</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SimSun', '宋体', serif;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px 60px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        /* 标题样式 */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+        }
+
+        .school-name {
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            margin-bottom: 10px;
+        }
+
+        .report-title {
+            font-size: 22px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-top: 15px;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        /* 基本信息表格 */
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+        }
+
+        .info-table td {
+            padding: 10px 15px;
+            border: 1px solid #000;
+            font-size: 14px;
+        }
+
+        .info-table td:first-child {
+            width: 120px;
+            background-color: #f9f9f9;
+            font-weight: bold;
+        }
+
+        /* 章节标题 */
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 25px 0 15px 0;
+            padding-left: 10px;
+            border-left: 4px solid #409EFF;
+            color: #303133;
+        }
+
+        /* 内容区域 */
+        .content-area {
+            min-height: 150px;
+            padding: 15px;
+            border: 1px solid #dcdfe6;
+            background-color: #fafafa;
+            margin-bottom: 20px;
+        }
+
+        .content-area p {
+            text-indent: 2em;
+            margin-bottom: 10px;
+            text-align: justify;
+        }
+
+        /* 进度条 */
+        .progress-container {
+            margin: 15px 0;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 30px;
+            background-color: #e4e7ed;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #409EFF, #67C23A);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            color: white;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        /* 列表样式 */
+        .task-list {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .task-list li {
+            padding: 8px 0 8px 30px;
+            position: relative;
+            border-bottom: 1px dashed #dcdfe6;
+        }
+
+        .task-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 8px;
+            color: #67C23A;
+            font-weight: bold;
+        }
+
+        .task-list li.incomplete:before {
+            content: "○";
+            color: #909399;
+        }
+
+        /* 表格 */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        .data-table th,
+        .data-table td {
+            border: 1px solid #000;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .data-table th {
+            background-color: #f5f7fa;
+            font-weight: bold;
+        }
+
+        /* 签名区域 */
+        .signature-area {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .signature-box {
+            width: 45%;
+        }
+
+        .signature-box .label {
+            font-weight: bold;
+            margin-bottom: 60px;
+        }
+
+        .signature-line {
+            border-top: 1px solid #000;
+            margin-top: 5px;
+            padding-top: 5px;
+            text-align: center;
+            color: #666;
+        }
+
+        /* 页脚 */
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        /* 提示文字 */
+        .tip {
+            background-color: #fdf6ec;
+            border: 1px solid #faecd8;
+            padding: 12px 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            color: #E6A23C;
+            font-size: 13px;
+        }
+
+        .tip strong {
+            color: #F56C6C;
+        }
+
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+            }
+            
+            .container {
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+            }
+
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 报告头部 -->
+        <div class="header">
+            <div class="school-name">XX大学</div>
+            <div class="report-title">毕业设计（论文）中期检查报告</div>
+            <div class="subtitle">Mid-term Inspection Report for Graduation Project</div>
+        </div>
+
+        <!-- 基本信息表格 -->
+        <table class="info-table">
+            <tr>
+                <td>学生姓名</td>
+                <td style="width: 200px;">___________</td>
+                <td>学号</td>
+                <td style="width: 200px;">___________</td>
+            </tr>
+            <tr>
+                <td>学院/系</td>
+                <td>___________</td>
+                <td>专业/班级</td>
+                <td>___________</td>
+            </tr>
+            <tr>
+                <td>毕设题目</td>
+                <td colspan="3">_________________________________________________</td>
+            </tr>
+            <tr>
+                <td>指导教师</td>
+                <td>___________</td>
+                <td>填表日期</td>
+                <td>______年____月____日</td>
+            </tr>
+        </table>
+
+        <div class="tip">
+            <strong>⚠️ 填写说明：</strong>
+            本报告用于记录毕业设计的中期进展情况。请学生如实填写当前完成进度、已开展的工作、遇到的问题及后续计划。
+            字迹工整，内容详实。完成后提交给指导教师审核。
+        </div>
+
+        <!-- 第一部分：任务书要求 -->
+        <div class="section-title">一、任务书主要内容及要求</div>
+        <div class="content-area" style="background-color: white; border-style: dashed;">
+            <p><strong>主要任务：</strong></p>
+            <p>1. 需求分析与系统设计（第1-3周）</p>
+            <p>2. 后端API开发与数据库实现（第4-8周）</p>
+            <p>3. 前端界面实现与交互功能（第9-11周）</p>
+            <p>4. 系统测试与优化完善（第12-13周）</p>
+            <p>5. 论文撰写与答辩准备（第14-16周）</p>
+            <br>
+            <p><strong>基本要求：</strong></p>
+            <p>• 完成系统需求分析和技术选型方案</p>
+            <p>• 设计完整的数据库结构和API接口</p>
+            <p>• 实现核心业务模块的功能开发</p>
+            <p>• 编写完整的技术文档和用户手册</p>
+        </div>
+
+        <!-- 第二部分：当前进度 -->
+        <div class="section-title">二、当前完成进度</div>
+        <div class="progress-container">
+            <div style="margin-bottom: 8px; font-weight: bold;">
+                整体完成度：<span style="color: #409EFF; font-size: 18px;">45%</span>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: 45%;">
+                    45%
+                </div>
+            </div>
+        </div>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 8%;">序号</th>
+                    <th style="width: 35%;">任务阶段</th>
+                    <th style="width: 22%;">计划时间</th>
+                    <th style="width: 17%;">实际状态</th>
+                    <th style="width: 18%;">备注</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td style="text-align: left;">文献调研与技术选型</td>
+                    <td>第1-2周</td>
+                    <td><span style="color: #67C23A;">● 已完成</span></td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td style="text-align: left;">系统架构设计</td>
+                    <td>第3-4周</td>
+                    <td><span style="color: #67C23A;">● 已完成</span></td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td style="text-align: left;">数据库设计与实现</td>
+                    <td>第5-6周</td>
+                    <td><span style="color: #67C23A;">● 已完成</span></td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td style="text-align: left;">后端API开发</td>
+                    <td>第7-9周</td>
+                    <td><span style="color: #E6A23C;">◐ 进行中</span></td>
+                    <td>完成70%</td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td style="text-align: left;">前端界面开发</td>
+                    <td>第10-11周</td>
+                    <td><span style="color: #909399;">○ 未开始</span></td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td style="text-align: left;">测试与文档撰写</td>
+                    <td>第12-16周</td>
+                    <td><span style="color: #909399;">○ 未开始</span></td>
+                    <td>-</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- 第三部分：已完成工作 -->
+        <div class="section-title">三、已完成的主要工作</div>
+        <div class="content-area">
+            <p><strong>1. 需求分析与调研</strong></p>
+            <p>完成了对同类系统的调研分析，收集了用户需求，编写了详细的需求规格说明书。通过问卷调查和用户访谈，明确了系统的核心功能和性能指标。</p>
+            
+            <p><strong>2. 技术方案设计</strong></p>
+            <p>确定了采用前后端分离的架构方案，后端使用Spring Boot + MyBatis-Plus框架，前端采用Vue 3 + Element Plus组件库，数据库选用MySQL 8.0。绘制了完整的系统架构图和ER图。</p>
+            
+            <p><strong>3. 数据库实现</strong></p>
+            <p>设计了包含19张核心数据表的数据库结构，包括用户管理、权限控制、业务数据等模块。完成了所有表的创建、索引优化以及初始数据的导入工作。</p>
+            
+            <p><strong>4. 后端基础框架搭建</strong></p>
+            <p>实现了项目的基础架构搭建，包括统一响应格式、全局异常处理、JWT认证机制、日志记录等通用功能的开发。目前已完成用户管理和选题管理两个核心模块的API接口。</p>
+        </div>
+
+        <!-- 第四部分：遇到的问题 -->
+        <div class="section-title">四、遇到的问题及解决方案</div>
+        <div class="content-area">
+            <p><strong>问题1：Spring Security权限配置复杂</strong></p>
+            <p><em>描述：</em>在实现基于角色的访问控制时，发现Spring Security的配置较为复杂，不同角色的权限拦截规则容易冲突。</p>
+            <p><em>解决：</em>通过查阅官方文档和相关技术博客，采用了方法级别的@PreAuthorize注解进行细粒度权限控制，并自定义了多个SecurityFilterChain来处理不同的API路径。</p>
+            
+            <br>
+            <p><strong>问题2：前端组件状态管理困难</strong></p>
+            <p><em>描述：</em>随着页面复杂度增加，组件之间的数据传递和状态同步变得困难，容易出现数据不一致的情况。</p>
+            <p><em>解决：</em>引入了Pinia作为全局状态管理工具，将用户登录态、角色权限等全局状态集中管理，并通过provide/inject机制实现跨组件通信。</p>
+            
+            <br>
+            <p><strong>问题3：数据库查询性能优化</strong></p>
+            <p><em>描述：</em>在关联多张表进行复杂查询时，发现响应时间较长，影响用户体验。</p>
+            <p><em>解决：</em>对常用查询字段添加了合适的索引，使用了MyBatis-Plus的分页插件避免全表扫描，并对热点数据考虑引入Redis缓存机制。</p>
+        </div>
+
+        <!-- 第五部分：下一步计划 -->
+        <div class="section-title">五、下一步工作计划</div>
+        <div class="content-area">
+            <ul class="task-list">
+                <li><strong>继续完成后端API开发</strong> - 预计还需2周时间，重点完成剩余的业务逻辑接口</li>
+                <li><strong>启动前端界面开发</strong> - 基于已有的UI原型图，使用Vue 3实现各功能页面</li>
+                <li><strong>前后端联调测试</strong> - 对接接口，修复数据传输和显示问题</li>
+                <li><strong>编写技术文档</strong> - 包括接口文档、部署手册、用户操作指南等</li>
+                <li><strong>系统整体测试</strong> - 进行功能测试、性能测试和安全测试</li>
+                <li><strong>准备答辩材料</strong> - 制作PPT演示文稿，整理项目亮点和创新点</li>
+            </ul>
+            <br>
+            <p><strong>预计完成时间：</strong>2026年5月底前完成全部开发工作，6月初进行系统验收和答辩准备。</p>
+        </div>
+
+        <!-- 第六部分：自我评价 -->
+        <div class="section-title">六、阶段性自我评价</div>
+        <div class="content-area">
+            <p>截至目前，毕业设计的整体进度符合预期计划，约完成总工作量的<strong>45%</strong>左右。在已完成的阶段中，严格按照任务书的要求开展工作，保证了每个里程碑节点的按时交付。</p>
+            
+            <p>在技术层面，通过本次毕业设计的实践，深入理解了企业级应用开发的完整流程，掌握了Spring Boot、Vue 3、MySQL等技术栈的综合运用能力，提升了代码规范性和工程化水平。</p>
+            
+            <p>在项目管理方面，学会了合理分配时间、制定阶段性目标、及时总结复盘的工作方法。虽然在实施过程中遇到了一些技术难题，但通过自主学习和查阅资料都得到了较好的解决。</p>
+            
+            <p>接下来的工作中，将继续保持良好的工作节奏，确保按期高质量地完成毕业设计的全部任务。</p>
+        </div>
+
+        <!-- 指导教师意见栏 -->
+        <div class="section-title">七、指导教师意见</div>
+        <table class="info-table">
+            <tr>
+                <td style="height: 150px; vertical-align: top;">
+                    <p><strong>教师评语：</strong></p>
+                    <p style="min-height: 80px;"></p>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div style="display: flex; justify-content: space-between; padding: 10px 0;">
+                        <span>审核结果：□ 通过 &nbsp;&nbsp; □ 需修改 &nbsp;&nbsp; □ 不通过</span>
+                        <span>签字：______________ &nbsp;&nbsp; 日期：______年____月____日</span>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- 签名区域 -->
+        <div class="signature-area">
+            <div class="signature-box">
+                <div class="label">学生签名：</div>
+                <div class="signature-line"></div>
+            </div>
+            <div class="signature-box">
+                <div class="label">指导教师签名：</div>
+                <div class="signature-line"></div>
+            </div>
+        </div>
+
+        <!-- 页脚 -->
+        <div class="footer">
+            <p>XX大学计算机科学与技术学院 · 毕业设计管理中心</p>
+            <p>本模板适用于本科毕业设计中期检查 · 2026届</p>
+        </div>
+    </div>
+
+    <!-- 打印按钮 (非打印时显示) -->
+    <div style="position: fixed; bottom: 30px; right: 30px;" class="no-print">
+        <button onclick="window.print()" 
+                style="
+                    padding: 12px 24px; 
+                    background: linear-gradient(135deg, #409EFF, #67C23A); 
+                    color: white; 
+                    border: none; 
+                    border-radius: 8px; 
+                    cursor: pointer; 
+                    font-size: 16px; 
+                    font-weight: bold;
+                    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+                    transition: all 0.3s ease;
+                "
+                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(64, 158, 255, 0.4)'"
+                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(64, 158, 255, 0.3)'"
+        >
+            🖨️ 打印 / 导出 PDF
+        </button>
+    </div>
+</body>
+</html>

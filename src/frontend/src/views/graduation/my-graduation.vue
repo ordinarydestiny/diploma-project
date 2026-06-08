@@ -272,12 +272,82 @@
             </el-timeline>
           </div>
 
-          <div class="action-buttons" v-if="!midtermInfo.checkId || ['draft', 'rejected'].includes(midtermInfo.status)">
-            <el-button type="primary" @click="handleSubmitMidtermReport">
+          <div class="action-buttons">
+            <el-button type="primary" @click="handleSubmitMidtermReport"
+                       v-if="!midtermInfo.checkId || ['draft', 'rejected'].includes(midtermInfo.status)">
               <el-icon><Upload /></el-icon>
               提交中期检查报告
             </el-button>
+            <el-button type="success" plain @click="downloadMidtermTemplate">
+              <el-icon><Download /></el-icon>
+              下载报告模板
+            </el-button>
           </div>
+
+          <!-- 提交中期检查报告弹窗 -->
+          <el-dialog
+            v-model="midtermDialogVisible"
+            title="提交中期检查报告"
+            width="600px"
+            :close-on-click-modal="false"
+            @close="resetMidtermForm"
+          >
+            <el-form :model="midtermForm" :rules="midtermRules" ref="midtermFormRef" label-width="120px">
+              <el-form-item label="完成进度" prop="progress">
+                <el-slider v-model="midtermForm.progress" :marks="progressMarks" :format-tooltip="(val) => val + '%'" />
+                <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+                  当前进度：{{ midtermForm.progress }}%
+                </div>
+              </el-form-item>
+
+              <el-form-item label="报告说明" prop="description">
+                <el-input
+                  v-model="midtermForm.description"
+                  type="textarea"
+                  :rows="5"
+                  placeholder="请简要说明当前完成的任务、遇到的问题及下一步计划..."
+                  maxlength="500"
+                  show-word-limit
+                />
+              </el-form-item>
+
+              <el-form-item label="附件上传">
+                <el-upload
+                  class="upload-demo"
+                  drag
+                  action="/api/files/upload"
+                  :headers="uploadHeaders"
+                  :data="uploadData"
+                  :on-success="handleMidtermFileSuccess"
+                  :before-upload="beforeMidtermUpload"
+                  :limit="1"
+                  accept=".pdf,.doc,.docx,.zip,.rar"
+                >
+                  <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
+                  <div class="el-upload__text">
+                    将文件拖到此处，或<em>点击上传</em>
+                  </div>
+                  <template #tip>
+                    <div class="el-upload__tip">
+                      支持 PDF/Word/压缩包格式，单个文件不超过 50MB
+                    </div>
+                  </template>
+                </el-upload>
+                <div v-if="midtermForm.fileName" style="margin-top: 8px; color: #67c23a;">
+                  <el-icon><Check /></el-icon> 已选择文件：{{ midtermForm.fileName }}
+                </div>
+              </el-form-item>
+            </el-form>
+
+            <template #footer>
+              <span class="dialog-footer">
+                <el-button @click="midtermDialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="submitMidtermReport" :loading="midtermSubmitting">
+                  确认提交
+                </el-button>
+              </span>
+            </template>
+          </el-dialog>
         </div>
       </el-collapse-item>
 
@@ -475,8 +545,8 @@
     </template>
 
     <script setup>
-    import { ref, onMounted } from 'vue'
-    import { Search, Check, Download, Upload, View, Document, Finished } from '@element-plus/icons-vue'
+    import { ref, computed, onMounted } from 'vue'
+    import { Search, Check, Download, Upload, View, Document, Finished, UploadFilled } from '@element-plus/icons-vue'
     import { ElMessage, ElMessageBox } from 'element-plus'
     import request from '@/utils/request'
     import { useUserStore } from '@/stores/user'
@@ -493,6 +563,45 @@
     const finalInfo = ref({})
     const defenseInfo = ref({})
     const scoreInfo = ref({})
+
+    // 中期检查提交弹窗相关
+    const midtermDialogVisible = ref(false)
+    const midtermSubmitting = ref(false)
+    const midtermFormRef = ref(null)
+    const midtermForm = ref({
+      progress: 40,
+      description: '',
+      fileId: null,
+      fileName: ''
+    })
+    const midtermRules = {
+      progress: [
+        { required: true, message: '请选择完成进度', trigger: 'change' }
+      ],
+      description: [
+        { required: true, message: '请填写报告说明', trigger: 'blur' },
+        { min: 10, message: '说明内容至少10个字符', trigger: 'blur' }
+      ]
+    }
+    const progressMarks = {
+      0: '0%',
+      25: '25%',
+      50: '50%',
+      75: '75%',
+      100: '100%'
+    }
+
+    // 文件上传请求头（携带JWT Token）
+    const uploadHeaders = {
+      Authorization: `Bearer ${localStorage.getItem('token') || ''}`
+    }
+
+    // 文件上传额外参数
+    const uploadData = computed(() => ({
+      uploaderId: JSON.parse(localStorage.getItem('userInfo') || '{}')?.userId || '',
+      relationType: 'midterm_check',
+      relationId: topicInfo.value?.selectionId || ''
+    }))
 
     // 页面加载时获取数据
     onMounted(async () => {
@@ -705,9 +814,39 @@
         confirmButtonText: '确定确认',
         cancelButtonText: '取消',
         type: 'info'
-      }).then(() => {
-        taskBookInfo.value.confirmed = true
-        ElMessage.success('✅ 已成功确认接收任务书')
+      }).then(async () => {
+        try {
+          if (!taskBookInfo.value.taskId) {
+            ElMessage.warning('暂无任务书可确认')
+            return
+          }
+
+          console.log('正在确认任务书, taskId:', taskBookInfo.value.taskId)
+
+          const response = await request.put(`/taskbooks/${taskBookInfo.value.taskId}/confirm`)
+
+          console.log('确认成功, 响应:', response)
+
+          await fetchMyGraduationInfo()
+
+          ElMessage.success('已成功确认接收任务书')
+        } catch (error) {
+          console.error('确认接收任务书失败 - 完整错误:', error)
+          console.error('响应数据:', error.response?.data)
+          console.error('响应状态:', error.response?.status)
+          console.error('响应头:', error.response?.headers)
+
+          const errorMsg = error.response?.data?.message 
+                        || error.response?.data?.msg 
+                        || error.message 
+                        || '未知错误'
+          
+          ElMessage.error('确认接收失败: ' + errorMsg)
+          
+          alert('调试信息:\n' + 
+                '状态码: ' + (error.response?.status) + '\n' +
+                '错误信息: ' + JSON.stringify(error.response?.data, null, 2))
+        }
       }).catch(() => {})
     }
 
@@ -754,7 +893,181 @@ ${(taskBookInfo.value.referenceList || []).map(ref => ref).join('\n') || '暂无
     }
 
     function handleSubmitMidtermReport() {
-      ElMessage.info('打开中期检查报告提交页面...')
+      // 检查是否有选题信息
+      if (!topicInfo.value.selectionId) {
+        ElMessage.warning('您尚未选择毕业设计题目，无法提交中期检查报告')
+        return
+      }
+
+      // 重置表单
+      midtermForm.value = {
+        progress: 40,
+        description: '',
+        fileId: null,
+        fileName: ''
+      }
+
+      midtermDialogVisible.value = true
+    }
+
+    function resetMidtermForm() {
+      midtermFormRef.value?.resetFields()
+      midtermForm.value = {
+        progress: 40,
+        description: '',
+        fileId: null,
+        fileName: ''
+      }
+    }
+
+    function beforeMidtermUpload(file) {
+      const isValidType = ['application/pdf', 'application/msword',
+                          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                          'application/zip', 'application/x-rar-compressed'].includes(file.type)
+      const isLt50M = file.size / 1024 / 1024 < 50
+
+      if (!isValidType) {
+        ElMessage.error('只能上传 PDF/Word/压缩包文件!')
+        return false
+      }
+      if (!isLt50M) {
+        ElMessage.error('文件大小不能超过 50MB!')
+        return false
+      }
+      return true
+    }
+
+    function handleMidtermFileSuccess(response) {
+      if (response.code === 200 && response.data) {
+        midtermForm.value.fileId = response.data.fileId
+        midtermForm.value.fileName = response.data.originalName || '已上传文件'
+        ElMessage.success('文件上传成功')
+      } else {
+        ElMessage.error(response.message || '文件上传失败')
+      }
+    }
+
+    async function submitMidtermReport() {
+      if (!midtermFormRef.value) return
+
+      await midtermFormRef.value.validate(async (valid) => {
+        if (!valid) return
+
+        try {
+          midtermSubmitting.value = true
+
+          const params = new URLSearchParams()
+          params.append('selectionId', topicInfo.value.selectionId)
+          params.append('progress', midtermForm.value.progress)
+
+          if (midtermForm.value.fileId) {
+            params.append('fileId', midtermForm.value.fileId)
+          }
+
+          const res = await request.post('/midterm-checks/submit', params, {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+          })
+
+          if (res.code === 200 || res.data) {
+            ElMessage.success('中期检查报告提交成功！')
+
+            midtermDialogVisible.value = false
+
+            await fetchMyGraduationInfo()
+          } else {
+            throw new Error(res.message || '提交失败')
+          }
+        } catch (error) {
+          console.error('提交中期检查报告失败:', error)
+          ElMessage.error('提交失败：' + (error.response?.data?.message || error.message))
+        } finally {
+          midtermSubmitting.value = false
+        }
+      })
+    }
+
+    async function downloadMidtermTemplate() {
+      try {
+        ElMessage.info('正在准备下载中期检查报告模板...')
+
+        // 创建新窗口
+        const printWindow = window.open('', '_blank')
+
+        if (!printWindow) {
+          ElMessage.error('无法弹出窗口，请允许弹窗后重试')
+          return
+        }
+
+        // 显示加载提示
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>正在加载模板...</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+                background-color: #f5f5f5;
+              }
+              .loading-container {
+                text-align: center;
+                padding: 40px;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+              }
+              .spinner {
+                width: 50px;
+                height: 50px;
+                border: 5px solid #f3f3f3;
+                border-top: 5px solid #409EFF;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 20px;
+              }
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+              p { color: #666; margin-top: 20px; }
+            </style>
+          </head>
+          <body>
+            <div class="loading-container">
+              <div class="spinner"></div>
+              <p>正在加载中期检查报告模板...</p>
+              <p style="font-size: 12px; color: #999;">加载完成后将自动打印</p>
+            </div>
+          </body>
+          </html>
+        `)
+
+        // 获取HTML模板
+        const response = await fetch('/templates/midterm-check-report-template.html')
+        const htmlContent = await response.text()
+
+        // 写入新窗口
+        printWindow.document.open()
+        printWindow.document.write(htmlContent)
+        printWindow.document.close()
+
+        // 等待页面加载完成后自动打印
+        printWindow.onload = function() {
+          setTimeout(() => {
+            printWindow.print()
+            ElMessage.success('已打开打印对话框，请选择"另存为PDF"保存')
+          }, 500)
+        }
+
+      } catch (error) {
+        console.error('下载模板失败:', error)
+        ElMessage.error('下载失败：' + error.message)
+      }
     }
 
     function handleSubmitFinalReport() {

@@ -16,18 +16,77 @@
           <el-divider />
 
           <div class="user-stats">
-            <div class="stat-item">
-              <div class="stat-number">{{ stats.topicCount }}</div>
-              <div class="stat-label">选题数</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-number">{{ stats.taskCount }}</div>
-              <div class="stat-label">任务书</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-number">{{ stats.defenseCount }}</div>
-              <div class="stat-label">答辩</div>
-            </div>
+            <!-- 学生角色统计 -->
+            <template v-if="roleCode === 'STUDENT' || userRole === 'student'">
+              <div class="stat-item">
+                <div class="stat-number">{{ stats.topicCount }}</div>
+                <div class="stat-label">选题数</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">{{ stats.taskbookCount }}</div>
+                <div class="stat-label">任务书</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">{{ stats.defenseCount }}</div>
+                <div class="stat-label">答辩</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">{{ stats.midtermCount }}</div>
+                <div class="stat-label">中期检查</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">{{ stats.signinCount }}</div>
+                <div class="stat-label">签到</div>
+              </div>
+            </template>
+
+            <!-- 教师角色统计 -->
+            <template v-else-if="roleCode === 'TEACHER' || userRole === 'teacher'">
+              <div class="stat-item">
+                <div class="stat-number">{{ stats.studentCount }}</div>
+                <div class="stat-label">指导学生</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">{{ stats.pendingTopicCount }}</div>
+                <div class="stat-label">待审核选题</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">{{ stats.pendingMidtermCount }}</div>
+                <div class="stat-label">待审核中期</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">{{ stats.pendingFinalCount }}</div>
+                <div class="stat-label">待审核终期</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">{{ stats.completedTaskbookCount }}</div>
+                <div class="stat-label">已完成任务书</div>
+              </div>
+            </template>
+
+            <!-- 管理员角色统计 -->
+            <template v-else-if="roleCode === 'ADMIN' || roleCode === 'DEPT_ADMIN' || roleCode === 'MAJOR_DIRECTOR' || userRole === 'college_admin' || userRole === 'major_admin'">
+              <div class="stat-item">
+                <div class="stat-number">{{ stats.totalStudents }}</div>
+                <div class="stat-label">总学生数</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">{{ stats.totalTeachers }}</div>
+                <div class="stat-label">总教师数</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">{{ stats.activeBatches }}</div>
+                <div class="stat-label">进行中批次</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">{{ stats.pendingTopics }}</div>
+                <div class="stat-label">待审题目</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">{{ stats.todayTopics }}</div>
+                <div class="stat-label">今日新增选题</div>
+              </div>
+            </template>
           </div>
 
           <el-divider />
@@ -145,10 +204,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { User, Phone, Message, OfficeBuilding, School } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import request from '@/utils/request'
 
 const userStore = useUserStore()
 const activeTab = ref('basic')
@@ -157,10 +217,27 @@ const userInfo = computed(() => userStore.userInfo)
 const roleCode = computed(() => userStore.roleCode)
 const roleLabel = computed(() => userStore.roleLabel)
 
+const userRole = ref('')
+
 const stats = ref({
-  topicCount: 1,
-  taskCount: 1,
-  defenseCount: 0
+  // 学生统计
+  topicCount: 0,
+  taskbookCount: 0,
+  defenseCount: 0,
+  midtermCount: 0,
+  signinCount: 0,
+  // 教师统计
+  studentCount: 0,
+  pendingTopicCount: 0,
+  pendingMidtermCount: 0,
+  pendingFinalCount: 0,
+  completedTaskbookCount: 0,
+  // 管理员统计
+  totalStudents: 0,
+  totalTeachers: 0,
+  activeBatches: 0,
+  pendingTopics: 0,
+  todayTopics: 0
 })
 
 const basicFormRef = ref(null)
@@ -169,6 +246,50 @@ const basicForm = reactive({
   phone: '',
   email: '',
   gender: ''
+})
+
+// 初始化基本信息表单
+function initBasicForm() {
+  if (userInfo.value) {
+    basicForm.realName = userInfo.value.realName || ''
+    basicForm.phone = userInfo.value.phone || ''
+    basicForm.email = userInfo.value.email || ''
+    basicForm.gender = userInfo.value.gender || ''
+  }
+}
+
+// 获取用户统计数据
+async function fetchUserStats() {
+  try {
+    const res = await request.get('/auth/stats')
+    
+    if (res.data) {
+      // 更新统计数据
+      Object.keys(stats.value).forEach(key => {
+        if (res.data[key] !== undefined) {
+          stats.value[key] = res.data[key]
+        }
+      })
+      
+      // 更新用户角色（从后端返回）
+      if (res.data.role) {
+        userRole.value = res.data.role
+      }
+      
+      console.log('用户统计数据加载成功：', stats.value)
+    }
+  } catch (error) {
+    console.error('获取用户统计失败:', error)
+    // 使用默认值，不显示错误提示
+  }
+}
+
+onMounted(() => {
+  // 初始化基本信息表单
+  initBasicForm()
+  
+  // 获取用户统计数据
+  fetchUserStats()
 })
 
 const basicRules = {

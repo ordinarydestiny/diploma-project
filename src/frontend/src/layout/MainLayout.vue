@@ -13,7 +13,7 @@
         <span
           v-show="!isCollapse"
           class="logo-text"
-        >顶岗实习系统</span>
+        >毕业设计系统</span>
       </div>
       <el-menu
         :default-active="activeMenu"
