@@ -377,38 +377,59 @@ function handleDialogFinalize() {
         return '教师评语不能少于20字，请详细评价学生的毕设报告'
       }
     }
-  }).then(({ value }) => {
-    const index = tableData.value.findIndex(item => item.id === currentRecord.value.id)
-    if (index > -1) {
-      const now = new Date().toLocaleString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      }).replace(/\//g, '-')
-
-      tableData.value[index].status = '已定稿'
-      tableData.value[index].teacherComment = value
-      tableData.value[index].finalizeTime = now
-
-      if (!tableData.value[index].revisionHistory) {
-        tableData.value[index].revisionHistory = []
-      }
-
-      tableData.value[index].revisionHistory.push({
-        version: tableData.value[index].version,
-        action: '通过并定稿',
-        time: now,
-        type: 'success',
-        comment: value.substring(0, 50) + '...'
+  }).then(async ({ value }) => {
+    try {
+      // 调用后端API：通过并定稿
+      await request.put(`/final-checks/${currentRecord.value.id}/review`, null, {
+        params: {
+          status: 'approved',  // 通过状态
+          comment: value,       // 教师评语
+          score: 90             // 默认成绩（可根据需要调整）
+        }
       })
 
-      currentRecord.value = { ...tableData.value[index] }
+      // 更新前端数据
+      const index = tableData.value.findIndex(item => item.id === currentRecord.value.id)
+      if (index > -1) {
+        const now = new Date().toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        }).replace(/\//g, '-')
 
-      ElMessage.success(`✅ 已通过并定稿学生 ${currentRecord.value.studentName} 的毕设报告\n该报告将作为最终版本进行存档`)
+        tableData.value[index].status = '已定稿'
+        tableData.value[index].teacherComment = value
+        tableData.value[index].finalizeTime = now
+
+        if (!tableData.value[index].revisionHistory) {
+          tableData.value[index].revisionHistory = []
+        }
+
+        tableData.value[index].revisionHistory.push({
+          version: tableData.value[index].version,
+          action: '通过并定稿',
+          time: now,
+          type: 'success',
+          comment: value.substring(0, 50) + '...'
+        })
+
+        currentRecord.value = { ...tableData.value[index] }
+        
+        // 关闭弹窗
+        detailDialogVisible.value = false
+        
+        ElMessage.success(`✅ 已通过并定稿学生 ${currentRecord.value.studentName} 的毕设报告\n该报告将作为最终版本进行存档\n\n数据已同步到数据库`)
+      }
+      
+      // 刷新列表数据
+      await fetchFinalChecks()
+    } catch (error) {
+      console.error('定稿失败:', error)
+      ElMessage.error('❌ 定稿失败，请重试')
     }
   }).catch(() => {})
 }
@@ -426,37 +447,57 @@ function handleDialogReject() {
         return '驳回理由不能为空'
       }
     }
-  }).then(({ value }) => {
-    const index = tableData.value.findIndex(item => item.id === currentRecord.value.id)
-    if (index > -1) {
-      const now = new Date().toLocaleString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      }).replace(/\//g, '-')
-
-      tableData.value[index].status = '需修改'
-      tableData.value[index].version += 1
-
-      if (!tableData.value[index].revisionHistory) {
-        tableData.value[index].revisionHistory = []
-      }
-
-      tableData.value[index].revisionHistory.push({
-        version: tableData.value[index].version - 1,
-        action: '驳回修改',
-        time: now,
-        type: 'danger',
-        comment: value
+  }).then(async ({ value }) => {
+    try {
+      // 调用后端API：驳回修改
+      await request.put(`/final-checks/${currentRecord.value.id}/review`, null, {
+        params: {
+          status: 'rejected',  // 驳回状态
+          comment: value        // 驳回理由
+        }
       })
 
-      currentRecord.value = { ...tableData.value[index] }
+      // 更新前端数据
+      const index = tableData.value.findIndex(item => item.id === currentRecord.value.id)
+      if (index > -1) {
+        const now = new Date().toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        }).replace(/\//g, '-')
 
-      ElMessage.success(`已将学生 ${currentRecord.value.studentName} 的毕设报告驳回修改\n当前版本已升级至 V${tableData.value[index].version}.0`)
+        tableData.value[index].status = '需修改'
+        tableData.value[index].version += 1
+
+        if (!tableData.value[index].revisionHistory) {
+          tableData.value[index].revisionHistory = []
+        }
+
+        tableData.value[index].revisionHistory.push({
+          version: tableData.value[index].version - 1,
+          action: '驳回修改',
+          time: now,
+          type: 'danger',
+          comment: value
+        })
+
+        currentRecord.value = { ...tableData.value[index] }
+        
+        // 关闭弹窗
+        detailDialogVisible.value = false
+
+        ElMessage.success(`✅ 已将学生 ${currentRecord.value.studentName} 的毕设报告驳回修改\n当前版本已升级至 V${tableData.value[index].version}.0\n\n数据已同步到数据库`)
+      }
+      
+      // 刷新列表数据
+      await fetchFinalChecks()
+    } catch (error) {
+      console.error('驳回失败:', error)
+      ElMessage.error('❌ 驳回失败，请重试')
     }
   }).catch(() => {})
 }
