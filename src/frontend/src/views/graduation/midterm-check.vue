@@ -76,7 +76,16 @@
         <el-table-column prop="checkTime" label="检查时间" width="180" align="center" />
         <el-table-column prop="progress" label="完成进度" width="120" align="center">
           <template #default="{ row }">
-            <el-progress :percentage="row.progress" :status="getProgressStatus(row.progress)" :stroke-width="8" />
+            <el-tooltip :content="getMidtermProgressByStatus(row.statusOriginal) + '%'" placement="top">
+              <div class="progress-wrapper">
+                <el-progress
+                  :percentage="getMidtermProgressByStatus(row.statusOriginal)"
+                  :color="getMidtermProgressColor(row.statusOriginal)"
+                  :stroke-width="8"
+                  :show-text="false"
+                />
+              </div>
+            </el-tooltip>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="检查状态" width="120" align="center">
@@ -116,7 +125,16 @@
         <el-descriptions-item label="毕设题目" :span="2">{{ currentRecord?.topicName }}</el-descriptions-item>
         <el-descriptions-item label="检查时间">{{ currentRecord?.checkTime }}</el-descriptions-item>
         <el-descriptions-item label="完成进度">
-          <el-progress :percentage="currentRecord?.progress" :status="getProgressStatus(currentRecord?.progress)" :stroke-width="16" :text-inside="true" />
+          <el-tooltip :content="getMidtermProgressByStatus(currentRecord?.statusOriginal) + '%'" placement="top">
+            <div class="progress-wrapper">
+              <el-progress
+                :percentage="getMidtermProgressByStatus(currentRecord?.statusOriginal)"
+                :color="getMidtermProgressColor(currentRecord?.statusOriginal)"
+                :stroke-width="16"
+                :show-text="false"
+              />
+            </div>
+          </el-tooltip>
         </el-descriptions-item>
         <el-descriptions-item label="检查状态">
           <el-tag :type="getStatusType(currentRecord?.status)" size="large">{{ currentRecord?.status }}</el-tag>
@@ -191,7 +209,8 @@ async function fetchMidtermChecks() {
         topicName: check.topic_name || '未选择题目',
         checkTime: check.submit_time ? formatDate(check.submit_time) : null,
         progress: check.progress || 0,
-        status: formatStatus(check.status),
+        status: formatStatus(check.status),           // 中文状态（用于显示）
+        statusOriginal: check.status,                // 原始英文状态（用于计算进度）
         content: check.report_content || '',
         comment: check.teacher_comment || '',
         // 保存原始数据供详情查看使用
@@ -272,6 +291,55 @@ function getProgressStatus(progress) {
   if (progress >= 50) return ''
   if (progress >= 30) return 'warning'
   return 'exception'
+}
+
+/**
+ * 根据中期检查状态计算完成进度（新规则）
+ * - 未提交(draft)：0%
+ * - 已驳回(rejected)：33%
+ * - 待审核(pending/submitted)：66%
+ * - 已通过(approved)：100%
+ */
+function getMidtermProgressByStatus(status) {
+  const progressMap = {
+    'draft': 0,
+    'rejected': 33,
+    'submitted': 66,
+    'pending': 66,
+    'approved': 100
+  }
+  
+  return progressMap[status] !== undefined ? progressMap[status] : 0
+}
+
+/**
+ * 获取中期检查进度条颜色
+ */
+function getMidtermProgressColor(status) {
+  const colorMap = {
+    'draft': '#C0C4CC',       // 浅灰色
+    'rejected': '#F56C6C',     // 红色
+    'submitted': '#E6A23C',   // 橙色
+    'pending': '#E6A23C',     // 橙色
+    'approved': '#67C23A'     // 绿色
+  }
+  
+  return colorMap[status] || '#409EFF'
+}
+
+/**
+ * 获取中期检查进度文字颜色
+ */
+function getMidtermProgressTextColor(status) {
+  const colorMap = {
+    'draft': '#909399',       // 灰色
+    'rejected': '#F56C6C',     // 红色
+    'submitted': '#E6A23C',   // 橙色
+    'pending': '#E6A23C',     // 橙色
+    'approved': '#67C23A'     // 绿色
+  }
+  
+  return colorMap[status] || '#909399'
 }
 
 function handleSearch() {
@@ -524,5 +592,10 @@ function handleCurrentChange(val) {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.progress-wrapper {
+  display: inline-block;
+  width: 100%;
 }
 </style>

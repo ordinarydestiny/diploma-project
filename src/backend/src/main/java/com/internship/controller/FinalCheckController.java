@@ -40,7 +40,7 @@ public class FinalCheckController {
     public Result<Void> review(@PathVariable Integer checkId,
                                 @RequestParam String status,
                                 @RequestParam String comment,
-                                @RequestParam Integer score) {
+                                @RequestParam(required = false) Integer score) {
         finalCheckService.reviewFinalCheck(checkId, status, comment, score);
         return Result.success();
     }

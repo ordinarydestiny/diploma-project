@@ -89,20 +89,50 @@
         </el-table-column>
         <el-table-column prop="score" label="答辩分数" width="120" align="center">
           <template #default="{ row }">
-            <span v-if="row.score !== null && row.score !== undefined" style="font-weight: bold; color: #409eff;">{{ row.score }}</span>
+            <!-- 只有已通过状态才显示分数 -->
+            <span v-if="(row.status === '已通过' || row.status === 'approved') && row.score !== null && row.score !== undefined" style="font-weight: bold; color: #409eff;">{{ row.score }}</span>
             <span v-else style="color: #c0c4cc;">-</span>
           </template>
         </el-table-column>
         <el-table-column prop="grade" label="成绩等级" width="100" align="center">
           <template #default="{ row }">
-            <el-tag v-if="row.grade" :type="getGradeType(row.grade)" size="small" effect="dark">{{ row.grade }}</el-tag>
+            <!-- 只有已通过状态才显示等级 -->
+            <el-tag v-if="(row.status === '已通过' || row.status === 'approved') && row.grade" :type="getGradeType(row.grade)" size="small" effect="dark">{{ row.grade }}</el-tag>
             <span v-else style="color: #c0c4cc;">-</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="120" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="handleViewDetail(row)">
-              进入详情
+            <!-- 根据状态动态显示不同按钮 -->
+            <!-- 未开始状态：显示"代为录入"按钮 -->
+            <el-button 
+              v-if="row.status === '未开始' || row.status === 'not_started'" 
+              type="primary" 
+              link 
+              size="small" 
+              @click="handleViewDetail(row)"
+            >
+              代为录入
+            </el-button>
+            <!-- 其他可编辑状态（无成绩）：显示"录入详情"按钮 -->
+            <el-button 
+              v-else-if="!row.score && row.status !== '待审核' && row.status !== '已通过'" 
+              type="primary" 
+              link 
+              size="small" 
+              @click="handleViewDetail(row)"
+            >
+              录入详情
+            </el-button>
+            <!-- 已有成绩或已审核：显示"查看详情"按钮 -->
+            <el-button 
+              v-else 
+              type="primary" 
+              link 
+              size="small" 
+              @click="handleViewDetail(row)"
+            >
+              查看详情
             </el-button>
           </template>
         </el-table-column>
@@ -121,7 +151,7 @@
       </div>
     </div>
 
-    <el-dialog v-model="detailDialogVisible" title="答辩详情管理" width="1100px" destroy-on-close>
+    <el-dialog v-model="detailDialogVisible" title="答辩详情管理" width="1100px" destroy-on-close @close="handleDialogClose">
       <div class="dialog-header-info">
         <el-descriptions :column="2" border style="margin-bottom: 20px;">
           <el-descriptions-item label="ID">{{ currentRecord?.id }}</el-descriptions-item>
@@ -133,9 +163,13 @@
             <el-tag :type="getStatusType(currentRecord?.status)" size="large">{{ currentRecord?.status }}</el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="提交方式">
-            <el-tag v-if="currentRecord?.submitMethod" :type="currentRecord.submitMethod === 'teacher' ? 'success' : 'warning'" size="small">
-              {{ currentRecord.submitMethod === 'teacher' ? '👨‍🏫 老师直接录入' : '👨‍🎓 学生录入' }}
-            </el-tag>
+            <!-- 只有在非"未开始"状态下才显示提交方式 -->
+            <template v-if="currentRecord?.status && currentRecord?.status !== '未开始' && currentRecord?.status !== 'not_started'">
+              <el-tag v-if="currentRecord?.submitMethod" :type="currentRecord.submitMethod === 'teacher' ? 'success' : 'warning'" size="small">
+                {{ currentRecord.submitMethod === 'teacher' ? '👨‍🏫 老师直接录入' : '👨‍🎓 学生录入' }}
+              </el-tag>
+              <span v-else style="color: #909399;">暂无</span>
+            </template>
             <span v-else style="color: #909399;">暂无</span>
           </el-descriptions-item>
         </el-descriptions>
@@ -180,11 +214,11 @@
             <el-col :span="12">
               <el-form-item label="成绩等级" prop="grade">
                 <el-select v-model="defenseForm.grade" placeholder="请选择成绩等级" style="width: 100%;">
-                  <el-option label="优秀 (90-100)" value="优秀" />
-                  <el-option label="良好 (80-89)" value="良好" />
-                  <el-option label="中等 (70-79)" value="中等" />
-                  <el-option label="及格 (60-69)" value="及格" />
-                  <el-option label="不及格 (<60)" value="不及格" />
+                  <el-option label="优秀 (90-100)" value="excellent" />
+                  <el-option label="良好 (80-89)" value="good" />
+                  <el-option label="中等 (70-79)" value="medium" />
+                  <el-option label="及格 (60-69)" value="pass" />
+                  <el-option label="不及格 (<60)" value="fail" />
                 </el-select>
               </el-form-item>
             </el-col>
@@ -360,7 +394,7 @@ async function fetchDefenseRecords() {
       // 转换数据格式以匹配前端表格
       tableData.value = res.data.map((record, index) => {
         const status = record.status || ''
-        const isNotStarted = status === 'not_started'
+        const isApproved = status === 'approved'
         
         return {
           id: record.defense_id,
@@ -369,8 +403,9 @@ async function fetchDefenseRecords() {
           teacherName: record.teacher_name || '未分配',
           topicName: record.topic_name || '未选择题目',
           status: formatStatus(status),
-          score: isNotStarted ? null : (record.defense_score_num || null),
-          grade: isNotStarted ? '暂无' : formatGrade(record.defense_score),
+          // 只有已通过状态才显示分数和等级
+          score: isApproved ? (record.defense_score_num || null) : null,
+          grade: isApproved ? formatGrade(record.defense_score) : null,
           submitMethod: record.submitter_type || null,
           pdfFile: null,
           pdfFileName: record.file_name || null,
@@ -469,12 +504,13 @@ const canEdit = computed(() => {
   if (!currentRecord.value) return false
   
   // 指导老师在以下情况下可以代为录入/修改：
-  // 1. 未答辩 - 学生还没有答辩记录
-  // 2. 待提交 - 学生已填写但未正式提交
-  // 3. 需修改 - 被驳回后需要重新提交
-  // 4. 已通过但无成绩 - 特殊情况允许补充录入（可选）
+  // 1. 未开始 - 学生还没有开始答辩（初始状态）
+  // 2. 未答辩 - 学生还没有答辩记录
+  // 3. 待提交 - 学生已填写但未正式提交
+  // 4. 需修改 - 被驳回后需要重新提交
+  // 5. 已通过但无成绩 - 特殊情况允许补充录入（可选）
   
-  const editableStatuses = ['未答辩', '待提交', '需修改']
+  const editableStatuses = ['未开始', 'not_started', '未答辩', '待提交', '需修改']
   
   // 如果是已通过但没有分数或PDF，也允许重新录入
   if (currentRecord.value.status === '已通过') {
@@ -538,12 +574,26 @@ function handleReset() {
 function handleViewDetail(row) {
   currentRecord.value = row
 
-  defenseForm.score = row.score
-  defenseForm.grade = row.grade || ''
-  defenseForm.defenseDate = row.defenseDate || ''
-  defenseForm.location = row.location || ''
-  defenseForm.committee = row.committee || ''
-  defenseForm.comment = row.comment || ''
+  // 【重要】根据状态设置合理的默认值
+  const isNotStarted = row.status === '未开始' || row.status === 'not_started'
+  
+  if (isNotStarted) {
+    // 未开始状态：设置默认值（避免验证失败）
+    defenseForm.score = null  // 允许用户输入
+    defenseForm.grade = ''     // 必须选择
+    defenseForm.defenseDate = new Date().toISOString().slice(0, 19).replace('T', ' ')  // 默认当前时间
+    defenseForm.location = ''
+    defenseForm.committee = ''
+    defenseForm.comment = ''   // 必须填写（≥10字）
+  } else {
+    // 其他状态：使用实际数据
+    defenseForm.score = row.score || null
+    defenseForm.grade = row.grade || ''
+    defenseForm.defenseDate = row.defenseDate || ''
+    defenseForm.location = row.location || ''
+    defenseForm.committee = row.committee || ''
+    defenseForm.comment = row.comment || ''
+  }
 
   fileList.value = []
   if (row.pdfFileName) {
@@ -554,6 +604,25 @@ function handleViewDetail(row) {
   }
 
   detailDialogVisible.value = true
+}
+
+function handleDialogClose() {
+  // 重置表单验证状态和字段值
+  if (defenseFormRef.value) {
+    defenseFormRef.value.resetFields()
+  }
+  
+  // 重置表单数据为初始状态
+  defenseForm.score = null
+  defenseForm.grade = ''
+  defenseForm.defenseDate = ''
+  defenseForm.location = ''
+  defenseForm.committee = ''
+  defenseForm.comment = ''
+  defenseForm.pdfFile = null
+  
+  fileList.value = []
+  currentRecord.value = null
 }
 
 function handleFileChange(file) {
@@ -591,11 +660,19 @@ function handlePreviewPdf() {
 
 async function handleSubmitAsTeacher() {
   if (!defenseFormRef.value) return
+  
+  // 【修复】在操作前先保存当前记录的引用，避免关闭弹窗后被清空
+  const record = currentRecord.value
+  
+  if (!record) {
+    ElMessage.error('❌ 未找到当前记录，请重试')
+    return
+  }
 
   try {
     await defenseFormRef.value.validate()
 
-    if (!defenseForm.pdfFile && !currentRecord.value.pdfFileName) {
+    if (!defenseForm.pdfFile && !record.pdfFileName) {
       ElMessage.warning('请上传答辩记录表PDF文件')
       return
     }
@@ -610,18 +687,35 @@ async function handleSubmitAsTeacher() {
       }
     ).then(async () => {
       try {
-        // 准备提交数据
+        // 准备提交数据 - 传递完整的答辩信息（使用局部变量record）
         const submitData = new FormData()
-        submitData.append('selectionId', currentRecord.value.selectionId || currentRecord.value.id)
-        submitData.append('defenseScore', defenseForm.score?.toString() || '0')
-        submitData.append('defenseScoreNum', defenseForm.score || 0)
+        submitData.append('selectionId', record.selectionId || record.id)
+        submitData.append('defenseScore', defenseForm.grade || '良好')  // 成绩等级
+        submitData.append('defenseScoreNum', defenseForm.score || 0)  // 数值分数
+        
+        // 【新增】传递完整字段
+        if (defenseForm.defenseDate) {
+          submitData.append('defenseDatetime', defenseForm.defenseDate)  // 答辩日期时间
+        }
+        if (defenseForm.location) {
+          submitData.append('location', defenseForm.location)  // 答辩地点
+        }
+        if (defenseForm.committee) {
+          submitData.append('committee', defenseForm.committee)  // 答辩委员会
+        }
+        if (defenseForm.comment) {
+          submitData.append('comment', defenseForm.comment)  // 答辩评语
+        }
         
         // 如果有PDF文件，添加到FormData
         if (defenseForm.pdfFile) {
           submitData.append('pdfFile', defenseForm.pdfFile)
+        } else if (record.pdfFileName) {
+          // 如果已有文件，不需要重新上传（使用原有的recordFileId）
+          // 这里可以不传或传null，后端会处理
         }
         
-        // 调用后端API：教师录入答辩成绩
+        // 调用后端API：教师录入答辩成绩（完整版）
         await request.post('/defenses/submitByTeacher', submitData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         })
@@ -631,7 +725,8 @@ async function handleSubmitAsTeacher() {
         
         detailDialogVisible.value = false
         
-        ElMessage.success(`✅ 已成功代为录入 ${currentRecord.value.studentName} 的答辩信息！\n数据已同步到数据库\n当前状态：待审核`)
+        // 使用局部变量显示成功消息（避免currentRecord已被置空）
+        ElMessage.success(`已成功代为录入 ${record.studentName} 的完整答辩信息！`)
       } catch (error) {
         console.error('录入答辩信息失败:', error)
         ElMessage.error('❌ 录入失败，请重试')
@@ -643,6 +738,14 @@ async function handleSubmitAsTeacher() {
 }
 
 async function handleApprove() {
+  // 【修复】在操作前先保存当前记录的引用，避免关闭弹窗后被清空
+  const record = currentRecord.value
+  
+  if (!record) {
+    ElMessage.error('❌ 未找到当前记录，请重试')
+    return
+  }
+  
   ElMessageBox.confirm(
     '确定要审核通过该生的答辩记录吗？通过后仍可驳回要求重新提交。',
     '确认审核通过',
@@ -653,11 +756,14 @@ async function handleApprove() {
     }
   ).then(async () => {
     try {
-      // 调用后端API：审核通过
-      await request.put(`/defenses/${currentRecord.value.id}/review`, null, {
+      // 调用后端API：审核通过（同时传递表单中的分数和等级）
+      await request.put(`/defenses/${record.id}/review`, null, {
         params: {
           status: 'approved',
-          comment: '答辩记录审核通过，成绩有效'
+          comment: '答辩记录审核通过，成绩有效',
+          // 【重要】传递表单中的分数和等级
+          defenseScore: defenseForm.grade || null,
+          defenseScoreNum: defenseForm.score || null
         }
       })
       
@@ -665,7 +771,8 @@ async function handleApprove() {
       detailDialogVisible.value = false
       await fetchDefenseRecords()
       
-      ElMessage.success(`✅ 已通过 ${currentRecord.value.studentName} 的答辩记录！\n该记录已正式存档并同步到数据库`)
+      // 使用局部变量显示成功消息（避免currentRecord已被置空）
+      ElMessage.success(`已通过 ${record.studentName} 的答辩记录！`)
     } catch (error) {
       console.error('审核通过失败:', error)
       ElMessage.error('❌ 审核失败，请重试')
@@ -674,6 +781,14 @@ async function handleApprove() {
 }
 
 function handleReject() {
+  // 【修复】在操作前先保存当前记录的引用，避免关闭弹窗后被清空
+  const record = currentRecord.value
+  
+  if (!record) {
+    ElMessage.error('❌ 未找到当前记录，请重试')
+    return
+  }
+  
   ElMessageBox.prompt('请输入驳回理由', '驳回重提交', {
     confirmButtonText: '确定驳回',
     cancelButtonText: '取消',
@@ -686,8 +801,8 @@ function handleReject() {
     }
   }).then(async ({ value }) => {
     try {
-      // 调用后端API：驳回
-      await request.put(`/defenses/${currentRecord.value.id}/review`, null, {
+      // 调用后端API：驳回（使用局部变量record）
+      await request.put(`/defenses/${record.id}/review`, null, {
         params: {
           status: 'rejected',
           comment: value
@@ -698,7 +813,8 @@ function handleReject() {
       detailDialogVisible.value = false
       await fetchDefenseRecords()
       
-      ElMessage.success(`已将 ${currentRecord.value.studentName} 的答辩记录驳回\n原因：${value}\n\n数据已同步到数据库`)
+      // 使用局部变量显示成功消息（避免currentRecord已被置空）
+      ElMessage.success(`已将 ${record.studentName} 的答辩记录驳回`)
     } catch (error) {
       console.error('驳回失败:', error)
       ElMessage.error('❌ 驳回失败，请重试')
@@ -707,6 +823,14 @@ function handleReject() {
 }
 
 function handleRejectAgain() {
+  // 【修复】在操作前先保存当前记录的引用，避免关闭弹窗后被清空
+  const record = currentRecord.value
+  
+  if (!record) {
+    ElMessage.error('❌ 未找到当前记录，请重试')
+    return
+  }
+  
   ElMessageBox.prompt('请输入驳回理由（已通过的记录也可以驳回重提交）', '驳回修改', {
     confirmButtonText: '确定驳回',
     cancelButtonText: '取消',
@@ -719,8 +843,8 @@ function handleRejectAgain() {
     }
   }).then(async ({ value }) => {
     try {
-      // 调用后端API：驳回（即使是已通过的也可以驳回）
-      await request.put(`/defenses/${currentRecord.value.id}/review`, null, {
+      // 调用后端API：驳回（使用局部变量record）
+      await request.put(`/defenses/${record.id}/review`, null, {
         params: {
           status: 'rejected',
           comment: `[重新驳回] ${value}`
@@ -731,7 +855,8 @@ function handleRejectAgain() {
       detailDialogVisible.value = false
       await fetchDefenseRecords()
       
-      ElMessage.success(`已将 ${currentRecord.value.studentName} 的答辩记录驳回修改\n原因：${value}\n\n数据已同步到数据库`)
+      // 使用局部变量显示成功消息（避免currentRecord已被置空）
+      ElMessage.success(`已将 ${record.studentName} 的答辩记录驳回修改`)
     } catch (error) {
       console.error('驳回失败:', error)
       ElMessage.error('❌ 驳回失败，请重试')

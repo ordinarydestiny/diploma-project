@@ -73,12 +73,23 @@ public class FinalCheckServiceImpl extends ServiceImpl<FinalCheckMapper, FinalCh
             throw new RuntimeException("最终检查记录不存在");
         }
         
+        // 验证：通过并定稿时必须填写分数
+        if ("approved".equals(status) && (score == null || score < 0 || score > 100)) {
+            throw new RuntimeException("通过并定稿时必须填写报告成绩（0-100分）");
+        }
+        
         Long reviewerId = jwtUtil.getCurrentUserId();
         finalCheck.setStatus(status);
         finalCheck.setReviewerId(reviewerId != null ? reviewerId.intValue() : null);
         finalCheck.setReviewTime(java.time.LocalDateTime.now());
         finalCheck.setReviewComment(comment);
-        finalCheck.setReportScore(score);
+        
+        // 只有通过时才设置分数，驳回时不设置
+        if ("approved".equals(status)) {
+            finalCheck.setReportScore(score);
+        } else {
+            finalCheck.setReportScore(null);  // 驳回时清空分数
+        }
         
         if ("approved".equals(status)) {
             boolean hasExistingFinal = finalCheckMapper.existsBySelectionAndFinal(finalCheck.getSelectionId()) > 0;

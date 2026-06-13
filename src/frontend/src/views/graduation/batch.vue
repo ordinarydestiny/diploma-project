@@ -103,9 +103,9 @@
             {{ row.defenseWeight }}%
           </template>
         </el-table-column>
-        <el-table-column prop="previewWeight" label="预告占比" width="110" align="center">
+        <el-table-column prop="reportRatio" label="报告占比" width="110" align="center">
           <template #default="{ row }">
-            {{ row.previewWeight }}%
+            {{ row.reportRatio }}%
           </template>
         </el-table-column>
         <el-table-column label="操作" width="220" fixed="right" align="center">
@@ -174,8 +174,8 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="预告占比" prop="previewWeight">
-              <el-input-number v-model="formData.previewWeight" :min="0" :max="100" :precision="1" style="width: 100%" />%
+            <el-form-item label="报告占比" prop="reportRatio">
+              <el-input-number v-model="formData.reportRatio" :min="0" :max="100" :precision="1" style="width: 100%" />%
             </el-form-item>
           </el-col>
         </el-row>
@@ -245,7 +245,7 @@ async function fetchBatches() {
         startDate: batch.start_date ? formatDate(batch.start_date) : null,
         endDate: batch.end_date ? formatDate(batch.end_date) : null,
         defenseWeight: batch.defense_weight || 40,
-        previewWeight: batch.preview_weight || 60,
+        reportRatio: (batch.report_ratio || 0.6) * 100,  // 数据库存的是小数(0.6)，前端显示百分比(60)
         studentCount: batch.student_count || 0,
         status: batch.status || 'active',
         // 保存原始数据供详情查看使用
@@ -338,7 +338,7 @@ const formData = reactive({
   startDate: '',
   endDate: '',
   defenseWeight: 40,
-  previewWeight: 10
+  reportRatio: 60
 })
 
 const formRules = {
@@ -385,7 +385,7 @@ function handleAdd() {
     startDate: '',
     endDate: '',
     defenseWeight: 40,
-    previewWeight: 10
+    reportRatio: 60
   })
   dialogVisible.value = true
 }
@@ -411,7 +411,7 @@ function handleEdit() {
   formData.startDate = row.startDate || ''
   formData.endDate = row.endDate || ''
   formData.defenseWeight = row.defenseWeight || 40
-  formData.previewWeight = row.previewWeight || 10
+  formData.reportRatio = row.reportRatio || 60
   
   dialogVisible.value = true
 }
@@ -428,7 +428,7 @@ function handleEditRow(row) {
   formData.startDate = row.startDate || ''
   formData.endDate = row.endDate || ''
   formData.defenseWeight = row.defenseWeight || 40
-  formData.previewWeight = row.previewWeight || 60
+  formData.reportRatio = row.reportRatio || 60
   
   dialogVisible.value = true
 }
@@ -502,7 +502,7 @@ function handleExport() {
     return
   }
 
-  const headers = ['批次ID', '年级', '专业', '学期', '开始时间', '结束时间', '答辩占比', '预告占比']
+  const headers = ['批次ID', '年级', '专业', '学期', '开始时间', '结束时间', '答辩占比', '报告占比']
   const data = filteredData.value.map(row => [
     row.batchId,
     row.grade,
@@ -511,7 +511,7 @@ function handleExport() {
     row.startDate,
     row.endDate,
     `${row.defenseWeight}%`,
-    `${row.previewWeight}%`
+    `${row.reportRatio}%`
   ])
 
   let csvContent = '\uFEFF'
@@ -558,7 +558,7 @@ async function handleSubmit() {
             startDate: formData.startDate,
             endDate: formData.endDate,
             defenseRatio: formData.defenseWeight / 100,  // 百分比转小数
-            reportRatio: formData.previewWeight / 100,   // 百分比转小数
+            reportRatio: formData.reportRatio / 100,   // 百分比转小数
             status: 'draft',
             currentPhase: 'preparation',
             description: `${formData.majorName}专业${formData.grade}届毕业设计批次`
@@ -582,7 +582,7 @@ async function handleSubmit() {
             startDate: formData.startDate,
             endDate: formData.endDate,
             defenseRatio: formData.defenseWeight / 100,  // 百分比转小数
-            reportRatio: formData.previewWeight / 100,   // 百分比转小数
+            reportRatio: formData.reportRatio / 100,   // 百分比转小数
             status: currentRecord.value?.status || 'active',
             currentPhase: currentRecord.value?.currentPhase || 'preparation'
           }

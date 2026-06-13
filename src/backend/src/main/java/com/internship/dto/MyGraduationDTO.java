@@ -247,6 +247,7 @@ public class MyGraduationDTO {
         private BigDecimal totalScore; // 总成绩
         private String gradeLevel; // A/B/C/D/F
         private Boolean isPublished; // 是否公布
+        private Boolean isPartialScore; // 是否为部分成绩（报告或答辩有一项未完成）
         private String publishedAt; // 公布时间
         private String calculatedAt; // 计算时间
     }

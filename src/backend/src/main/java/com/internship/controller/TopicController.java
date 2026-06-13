@@ -57,7 +57,7 @@ public class TopicController {
                 topic.setTopicId(rs.getInt("topic_id"));
                 topic.setTopicName(rs.getString("topic_name"));
                 topic.setDescription(rs.getString("description"));
-                topic.setDifficulty(rs.getByte("difficulty"));
+                topic.setDifficulty((int) rs.getByte("difficulty"));
                 topic.setCategory(rs.getString("category"));
                 topic.setTopicType(rs.getString("topic_type"));
                 topic.setSource(rs.getString("source"));
@@ -67,8 +67,8 @@ public class TopicController {
                 topic.setSelectionCount(rs.getInt("selection_count"));
                 topic.setMaxStudents(rs.getInt("max_students"));
                 topic.setStatus(rs.getString("status"));
-                topic.setCreatedAt(rs.getTimestamp("created_at"));
-                topic.setUpdatedAt(rs.getTimestamp("updated_at"));
+                topic.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+                topic.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
                 return topic;
             }, grade + "届");
 

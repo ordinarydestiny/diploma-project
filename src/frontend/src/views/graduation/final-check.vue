@@ -210,11 +210,73 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- ✨ 新增：定稿对话框（输入报告分数和教师评语） -->
+    <el-dialog 
+      v-model="finalizeDialogVisible" 
+      title="通过并定稿" 
+      width="600px" 
+      destroy-on-close
+      :close-on-click-modal="false"
+    >
+      <el-alert
+        title="⚠️ 请认真填写以下信息，定稿后该报告将成为最终版本存档"
+        type="warning"
+        :closable="false"
+        show-icon
+        style="margin-bottom: 20px;"
+      />
+
+      <el-form
+        ref="finalizeFormRef"
+        :model="finalizeForm"
+        :rules="finalizeFormRules"
+        label-width="120px"
+        label-position="top"
+      >
+        <el-form-item label="* 报告成绩（0-100分）" prop="score">
+          <el-input-number
+            v-model="finalizeForm.score"
+            :min="0"
+            :max="100"
+            :precision="1"
+            :step="5"
+            size="large"
+            style="width: 100%;"
+            placeholder="请输入报告分数（如：85、90、75等）"
+          />
+          <div style="margin-top: 5px; color: #909399; font-size: 12px;">
+            提示：根据论文质量、完成度、创新性等综合评定
+          </div>
+        </el-form-item>
+
+        <el-form-item label="* 教师评语（不少于20字）" prop="comment">
+          <el-input
+            v-model="finalizeForm.comment"
+            type="textarea"
+            :rows="5"
+            maxlength="500"
+            show-word-limit
+            placeholder="请认真填写对该生毕设报告的评价和建议（必填，不少于20字）..."
+          />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="finalizeDialogVisible = false">取 消</el-button>
+          <el-button type="success" @click="handleSubmitFinalize" :loading="submittingFinalize">
+            <el-icon><Finished /></el-icon>
+            确认定稿
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, h } from 'vue'
 import { Search, Refresh, EditPen, Finished, Close, Download } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as XLSX from 'xlsx'
@@ -234,6 +296,27 @@ const searchForm = reactive({
 })
 
 const currentRecord = ref(null)
+
+// ✨ 新增：定稿对话框相关变量
+const finalizeDialogVisible = ref(false)
+const finalizeFormRef = ref(null)
+const submittingFinalize = ref(false)
+const finalizeForm = reactive({
+          score: null,
+          comment: '' // 教师评语
+        })
+
+// 定稿表单验证规则
+const finalizeFormRules = {
+  score: [
+    { required: true, message: '请输入报告分数', trigger: 'blur' },
+    { type: 'number', min: 0, max: 100, message: '分数必须在0-100之间', trigger: 'blur' }
+  ],
+  comment: [
+    { required: true, message: '请输入教师评语', trigger: 'blur' },
+    { min: 20, max: 500, message: '评语长度应在20-500字之间', trigger: 'blur' }
+  ]
+}
 
 // 从API获取的数据
 const tableData = ref([])
@@ -364,27 +447,38 @@ function handleApprove(row) {
   detailDialogVisible.value = true
 }
 
+// ✨ 修改：打开定稿对话框
 function handleDialogFinalize() {
   if (!currentRecord.value) return
 
-  ElMessageBox.prompt('请输入教师评语（该评语将作为正式评语存档）', '通过并定稿', {
-    confirmButtonText: '确定定稿',
-    cancelButtonText: '取消',
-    inputType: 'textarea',
-    inputPlaceholder: '请认真填写对该生毕设报告的评价和建议（必填，不少于20字）',
-    inputValidator: (value) => {
-      if (!value || value.trim().length < 20) {
-        return '教师评语不能少于20字，请详细评价学生的毕设报告'
-      }
+  // 重置表单数据为空
+  finalizeForm.score = null
+  finalizeForm.comment = ''
+  
+  // 打开定稿对话框
+  finalizeDialogVisible.value = true
+}
+
+// ✨ 新增：提交定稿表单
+async function handleSubmitFinalize() {
+  // 表单验证
+  if (!finalizeFormRef.value) return
+  
+  await finalizeFormRef.value.validate(async (valid) => {
+    if (!valid) {
+      ElMessage.warning('请检查表单填写是否完整')
+      return
     }
-  }).then(async ({ value }) => {
+
+    submittingFinalize.value = true
+
     try {
       // 调用后端API：通过并定稿
       await request.put(`/final-checks/${currentRecord.value.id}/review`, null, {
         params: {
           status: 'approved',  // 通过状态
-          comment: value,       // 教师评语
-          score: 90             // 默认成绩（可根据需要调整）
+          comment: finalizeForm.comment,     // 教师评语
+          score: finalizeForm.score           // 报告分数
         }
       })
 
@@ -402,7 +496,8 @@ function handleDialogFinalize() {
         }).replace(/\//g, '-')
 
         tableData.value[index].status = '已定稿'
-        tableData.value[index].teacherComment = value
+        tableData.value[index].teacherComment = finalizeForm.comment
+        tableData.value[index].reportScore = finalizeForm.score
         tableData.value[index].finalizeTime = now
 
         if (!tableData.value[index].revisionHistory) {
@@ -414,15 +509,19 @@ function handleDialogFinalize() {
           action: '通过并定稿',
           time: now,
           type: 'success',
-          comment: value.substring(0, 50) + '...'
+          comment: `报告评分：${finalizeForm.score}分 | ${finalizeForm.comment.substring(0, 40)}...`
         })
 
         currentRecord.value = { ...tableData.value[index] }
         
-        // 关闭弹窗
+        // 关闭所有弹窗
+        finalizeDialogVisible.value = false
         detailDialogVisible.value = false
         
-        ElMessage.success(`✅ 已通过并定稿学生 ${currentRecord.value.studentName} 的毕设报告\n该报告将作为最终版本进行存档\n\n数据已同步到数据库`)
+        ElMessage.success(`✅ 已通过并定稿学生 ${currentRecord.value.studentName} 的毕设报告\n\n` +
+                       `📊 报告成绩：${finalizeForm.score}分\n` +
+                       `📝 教师评语：${finalizeForm.comment.substring(0, 30)}...\n\n` +
+                       `该报告将作为最终版本进行存档`)
       }
       
       // 刷新列表数据
@@ -430,8 +529,10 @@ function handleDialogFinalize() {
     } catch (error) {
       console.error('定稿失败:', error)
       ElMessage.error('❌ 定稿失败，请重试')
+    } finally {
+      submittingFinalize.value = false
     }
-  }).catch(() => {})
+  })
 }
 
 function handleDialogReject() {

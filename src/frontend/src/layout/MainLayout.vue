@@ -189,6 +189,7 @@ const allMenuRoutes = [
       { path: '/graduation/check-in', meta: { title: '签到情况', icon: 'Clock' } },
       { path: '/graduation/midterm-check', meta: { title: '中期检查', icon: 'Check' } },
       { path: '/graduation/final-check', meta: { title: '最终检查', icon: 'Finished' } },
+      { path: '/graduation/score-management', meta: { title: '成绩管理', icon: 'Trophy' } },
       { path: '/graduation/my-graduation', meta: { title: '我的毕业设计', icon: 'UserFilled' } }
     ]
   }
@@ -208,7 +209,8 @@ const roleMenuPermissions = {
     '/graduation/student-selection',
     '/graduation/task-book',
     '/graduation/defense',
-    '/graduation/check-in'
+    '/graduation/check-in',
+    '/graduation/score-management'
   ],
   // 专业负责人：仅基础管理和题库
   major_admin: [
@@ -216,7 +218,7 @@ const roleMenuPermissions = {
     '/graduation/batch',
     '/graduation/topic-management'
   ],
-  // 指导教师：教学相关功能（题库、选题、任务书、各类检查、答辩、签到）
+  // 指导教师：教学相关功能（题库、选题、任务书、各类检查、答辩、签到、成绩）
   teacher: [
     '/graduation/topic-management',
     '/graduation/student-selection',
@@ -224,7 +226,8 @@ const roleMenuPermissions = {
     '/graduation/midterm-check',
     '/graduation/final-check',
     '/graduation/defense',
-    '/graduation/check-in'
+    '/graduation/check-in',
+    '/graduation/score-management'
   ],
   // 学生：只能查看自己的毕设信息
   student: [

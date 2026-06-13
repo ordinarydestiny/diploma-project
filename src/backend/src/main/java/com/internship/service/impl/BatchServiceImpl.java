@@ -109,7 +109,6 @@ public class BatchServiceImpl extends ServiceImpl<ProjectBatchMapper, ProjectBat
         return result.get(0);
     }
 
-    @Override
     public IPage<ProjectBatch> listBatches(Integer page, Integer size, Integer majorId, String status) {
         Page<ProjectBatch> pageParam = new Page<>(page, size);
         LambdaQueryWrapper<ProjectBatch> wrapper = new LambdaQueryWrapper<>();
@@ -125,7 +124,6 @@ public class BatchServiceImpl extends ServiceImpl<ProjectBatchMapper, ProjectBat
         return page(pageParam, wrapper);
     }
 
-    @Override
     public ProjectBatch getBatchDetail(Integer batchId) {
         ProjectBatch batch = getById(batchId);
         if (batch == null) {

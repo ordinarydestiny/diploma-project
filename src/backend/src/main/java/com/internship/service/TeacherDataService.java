@@ -83,4 +83,9 @@ public interface TeacherDataService {
      * 获取可纳入师生关系的学生列表（排除已有关系的学生）
      */
     List<Map<String, Object>> getAvailableStudentsForRelation(Integer teacherId);
+
+    /**
+     * 获取所有学生的总成绩列表（关联选题、最终检查、答辩等表）
+     */
+    List<Map<String, Object>> getAllStudentScores();
 }

@@ -101,6 +101,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/internship/statistics/**").hasAnyRole("ADMIN", "DEPT_ADMIN", "TEACHER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/internship/scores/my").hasAnyRole("ADMIN", "DEPT_ADMIN", "TEACHER", "STUDENT")
                         .requestMatchers("/api/v1/internship/scores/**").hasAnyRole("ADMIN", "DEPT_ADMIN", "TEACHER")
+                        .requestMatchers("/api/v1/scores/**").authenticated()  // 成绩管理接口（临时开放给所有已登录用户）
                         .requestMatchers("/api/v1/graduation/**").authenticated()
                         .requestMatchers("/api/v1/messages/**").hasAnyRole("ADMIN", "DEPT_ADMIN", "TEACHER", "STUDENT")
                         .requestMatchers("/api/files/**").authenticated()  // 文件下载和预览接口

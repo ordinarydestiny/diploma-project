@@ -87,6 +87,12 @@ const routes = [
         meta: { title: '最终检查', icon: 'Finished' }
       },
       {
+        path: 'graduation/score-management',
+        name: 'ScoreManagement',
+        component: () => import('@/views/graduation/score-management.vue'),
+        meta: { title: '成绩管理', icon: 'Trophy', roles: ['teacher', 'college_admin', 'major_admin'] }
+      },
+      {
         path: 'graduation/my-graduation',
         name: 'MyGraduation',
         component: () => import('@/views/graduation/my-graduation.vue'),

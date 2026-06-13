@@ -808,4 +808,268 @@ public class TeacherDataServiceImpl implements TeacherDataService {
 
         return jdbcTemplate.queryForList(sql);
     }
+
+    @Override
+    public List<Map<String, Object>> getAllStudentScores() {
+        List<Map<String, Object>> result = new java.util.ArrayList<>();
+        
+        try {
+            // 第1步：查询所有学生基本信息
+            String sqlStudents = "SELECT user_id, username, real_name, class_name FROM users WHERE role = 'student' ORDER BY username ASC LIMIT 100";
+            log.info("【成绩查询】第1步：查询学生列表...");
+            List<Map<String, Object>> students = jdbcTemplate.queryForList(sqlStudents);
+            log.info("【成绩查询】找到 {} 个学生", students.size());
+            
+            // 第2步：为每个学生补充信息
+            for (Map<String, Object> student : students) {
+                Map<String, Object> score = new java.util.HashMap<>();
+                
+                // 基本信息
+                score.put("id", student.get("user_id"));
+                score.put("studentNo", student.get("username"));
+                score.put("studentName", student.get("real_name"));
+                score.put("className", student.get("class_name"));
+                
+                try {
+                    // 第3步：查询该学生的选题信息（获取最新一条）
+                    Integer studentId = (Integer) student.get("user_id");
+                    String sqlTopic = "SELECT t.topic_name FROM student_selections ss INNER JOIN topics t ON ss.topic_id = t.topic_id WHERE ss.student_id = ? ORDER BY ss.selection_id DESC LIMIT 1";
+                    
+                    List<Map<String, Object>> topics = jdbcTemplate.queryForList(sqlTopic, studentId);
+                    if (topics != null && !topics.isEmpty()) {
+                        score.put("topicName", topics.get(0).get("topic_name"));
+                    } else {
+                        score.put("topicName", null);
+                    }
+                    
+                    // 第4步：查询最终检查报告分（定稿版本）
+                    String sqlReport = "SELECT report_score FROM final_checks WHERE selection_id IN (SELECT selection_id FROM student_selections WHERE student_id = ?) AND is_final = 1 LIMIT 1";
+                    List<Map<String, Object>> reports = jdbcTemplate.queryForList(sqlReport, studentId);
+                    if (reports != null && !reports.isEmpty() && reports.get(0).get("report_score") != null) {
+                        Double reportScore = ((Number) reports.get(0).get("report_score")).doubleValue();
+                        if (reportScore > 0) {
+                            score.put("reportScore", String.format("%.1f", reportScore));
+                        } else {
+                            score.put("reportScore", null);
+                        }
+                    } else {
+                        score.put("reportScore", null);
+                    }
+                    
+                    // 第5步：查询答辩分数和状态（重要：必须审核通过才显示）
+                    String sqlDefense = """ 
+                        SELECT defense_score_num, status 
+                        FROM defenses 
+                        WHERE selection_id IN (
+                            SELECT selection_id FROM student_selections WHERE student_id = ?
+                        ) 
+                        ORDER BY created_at DESC 
+                        LIMIT 1
+                    """;
+                    List<Map<String, Object>> defenses = jdbcTemplate.queryForList(sqlDefense, studentId);
+                    
+                    String defenseStatus = null;  // 当前答辩状态
+                    if (defenses != null && !defenses.isEmpty()) {
+                        defenseStatus = (String) defenses.get(0).get("status");
+                        
+                        // 只有"已通过"状态才显示分数
+                        if ("approved".equals(defenseStatus) && defenses.get(0).get("defense_score_num") != null) {
+                            Double defenseScore = ((Number) defenses.get(0).get("defense_score_num")).doubleValue();
+                            if (defenseScore > 0) {
+                                score.put("defenseScore", String.format("%.1f", defenseScore));
+                            } else {
+                                score.put("defenseScore", null);
+                            }
+                        } else {
+                            // 待审核、未开始、已驳回等状态都不显示分数
+                            score.put("defenseScore", null);
+                            log.info("【成绩查询】学生 {} 答辩状态为 {}，不显示分数", student.get("username"), defenseStatus);
+                        }
+                    } else {
+                        score.put("defenseScore", null);
+                    }
+                    
+                    // 第6步：查询总成绩（只有答辩通过后才计算和显示）
+                    String sqlTotal = "SELECT total_score, grade_level FROM final_scores WHERE selection_id IN (SELECT selection_id FROM student_selections WHERE student_id = ?) LIMIT 1";
+                    List<Map<String, Object>> totals = jdbcTemplate.queryForList(sqlTotal, studentId);
+                    
+                    Double dbTotalScore = null;
+                    String dbGradeLevel = null;
+                    
+                    // 【核心修复】只有答辩已通过才允许显示总成绩
+                    boolean canShowScore = "approved".equals(defenseStatus);
+                    
+                    if (canShowScore && totals != null && !totals.isEmpty() && totals.get(0).get("total_score") != null) {
+                        dbTotalScore = ((Number) totals.get(0).get("total_score")).doubleValue();
+                        dbGradeLevel = (String) totals.get(0).get("grade_level");
+                    }
+                    
+                    Double reportScoreNum = null;
+                    Double defenseScoreNum = null;
+                    
+                    if (score.get("reportScore") != null) {
+                        reportScoreNum = Double.parseDouble((String) score.get("reportScore"));
+                    }
+                    if (score.get("defenseScore") != null) {
+                        defenseScoreNum = Double.parseDouble((String) score.get("defenseScore"));
+                    }
+                    
+                    Double finalTotalScore = null;
+                    String finalGradeLevel = null;
+                    
+                    // 判断是否需要计算并显示成绩
+                    if (canShowScore) {
+                        boolean needRecalculate = false;
+                        if (dbTotalScore == null || dbTotalScore <= 0) {
+                            if (reportScoreNum != null && defenseScoreNum != null) {
+                                needRecalculate = true;
+                            }
+                        }
+                        
+                        if (needRecalculate) {
+                            double reportRatio = 0.6;
+                            double defenseRatio = 0.4;
+                            
+                            try {
+                                String sqlBatch = """ 
+                                    SELECT pb.report_ratio, pb.defense_ratio 
+                                    FROM project_batches pb 
+                                    INNER JOIN student_selections ss ON pb.batch_id = ss.batch_id 
+                                    WHERE ss.student_id = ? 
+                                    LIMIT 1
+                                """;
+                                List<Map<String, Object>> batches = jdbcTemplate.queryForList(sqlBatch, studentId);
+                                if (batches != null && !batches.isEmpty()) {
+                                    if (batches.get(0).get("report_ratio") != null) {
+                                        reportRatio = ((Number) batches.get(0).get("report_ratio")).doubleValue();
+                                    }
+                                    if (batches.get(0).get("defense_ratio") != null) {
+                                        defenseRatio = ((Number) batches.get(0).get("defense_ratio")).doubleValue();
+                                    }
+                                }
+                            } catch (Exception e) {
+                                log.warn("【成绩查询】获取批次权重失败，使用默认值: {}", e.getMessage());
+                            }
+                            
+                            finalTotalScore = reportScoreNum * reportRatio + defenseScoreNum * defenseRatio;
+                            finalTotalScore = Math.round(finalTotalScore * 100.0) / 100.0;
+                            finalGradeLevel = determineGradeLevel(finalTotalScore);
+                            
+                            log.info("【成绩查询】学生 {} 实时计算总成绩: 报告={}×{} + 答辩={}×{} = {} ({})", 
+                                student.get("username"), reportScoreNum, reportRatio, defenseScoreNum, defenseRatio, finalTotalScore, finalGradeLevel);
+                        } else {
+                            finalTotalScore = dbTotalScore;
+                            finalGradeLevel = dbGradeLevel;
+                        }
+                    } else {
+                        // 答辩未通过 → 不显示成绩和等级
+                        log.info("【成绩查询】学生 {} 答辩未通过（状态={}），不显示总成绩", student.get("username"), defenseStatus);
+                    }
+                    
+                    // 设置最终结果
+                    if (finalTotalScore != null && finalTotalScore > 0) {
+                        score.put("totalScore", String.format("%.1f", finalTotalScore));
+                        score.put("gradeLevel", finalGradeLevel);
+                    } else {
+                        score.put("totalScore", null);
+                        score.put("gradeLevel", null);
+                    }
+                    
+                    // 根据答辩状态设置显示状态
+                    if (defenseStatus != null) {
+                        score.put("status", defenseStatus);  // 使用实际的答辩状态
+                    } else if (score.get("totalScore") != null || score.get("defenseScore") != null) {
+                        score.put("status", "approved");
+                    } else {
+                        score.put("status", "not_started");
+                    }
+                    
+                } catch (Exception e) {
+                    log.warn("【成绩查询】处理学生 {} 数据时出错: {}", student.get("username"), e.getMessage());
+                    score.put("topicName", null);
+                    score.put("reportScore", null);
+                    score.put("defenseScore", null);
+                    score.put("totalScore", null);
+                    score.put("gradeLevel", null);
+                    score.put("status", "not_started");
+                }
+                
+                result.add(score);
+            }
+            
+            log.info("【成绩查询】成功组装 {} 条完整成绩记录", result.size());
+            
+        } catch (Exception e) {
+            log.error("【成绩查询】主流程失败: {}", e.getMessage(), e);
+            
+            // 降级方案：返回最简单的数据
+            try {
+                String sqlSimple = "SELECT user_id as id, username as studentNo, real_name as studentName, class_name as className FROM users WHERE role = 'student' LIMIT 50";
+                result = jdbcTemplate.queryForList(sqlSimple);
+                log.info("【成绩查询】使用降级方案，获取 {} 条", result.size());
+            } catch (Exception e2) {
+                log.error("【成绩查询】降级也失败: {}", e2.getMessage());
+                result = new java.util.ArrayList<>();
+            }
+        }
+        
+        return result;
+    }
+
+    /**
+     * 安全地格式化分数为字符串（保留1位小数）
+     * 处理各种可能的输入类型：Number、String、null等
+     */
+    private String formatScore(Object value) {
+        if (value == null) {
+            return null;
+        }
+        
+        try {
+            double numValue;
+            
+            if (value instanceof Number) {
+                numValue = ((Number) value).doubleValue();
+            } else if (value instanceof String) {
+                String strVal = ((String) value).trim();
+                if (strVal.isEmpty() || "null".equalsIgnoreCase(strVal)) {
+                    return null;
+                }
+                numValue = Double.parseDouble(strVal);
+            } else {
+                return value.toString();
+            }
+            
+            // 如果值为0或负数，返回null表示无数据
+            if (numValue <= 0) {
+                return null;
+            }
+            
+            return String.format("%.1f", numValue);
+        } catch (Exception e) {
+            log.warn("格式化分数失败: {} -> {}", value, e.getMessage());
+            return value != null ? value.toString() : null;
+        }
+    }
+    
+    /**
+     * 根据总分确定成绩等级
+     */
+    private String determineGradeLevel(Double totalScore) {
+        if (totalScore == null) {
+            return null;
+        }
+        
+        if (totalScore >= 90) {
+            return "A";
+        } else if (totalScore >= 80) {
+            return "B";
+        } else if (totalScore >= 70) {
+            return "C";
+        } else if (totalScore >= 60) {
+            return "D";
+        } else {
+            return "F";
+        }
+    }
 }

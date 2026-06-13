@@ -206,10 +206,10 @@
                 {{ formatMidtermStatus(midtermInfo.status) }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="最新进度" v-if="midtermInfo.progress !== null && midtermInfo.progress !== undefined">
+            <el-descriptions-item label="最新进度">
               <el-progress
-                :percentage="midtermInfo.progress"
-                :status="getProgressStatus(midtermInfo.progress)"
+                :percentage="getMidtermProgress(midtermInfo.status, midtermInfo.progress)"
+                :status="getMidtermProgressStatus(midtermInfo.status)"
                 :stroke-width="20"
                 :text-inside="true"
                 style="width: 200px;"
@@ -250,19 +250,23 @@
               >
                 <el-card shadow="hover" class="report-card">
                   <div class="report-header">
-                    <strong>第 {{ report.version }} 次提交</strong>
+                    <strong>第 {{ index + 1 }} 次提交</strong>
                     <el-tag :type="report.status === 'approved' ? 'success' : report.status === 'rejected' ? 'danger' : 'warning'" size="small">
                       {{ formatMidtermStatus(report.status) }}
                     </el-tag>
                   </div>
-                  <div class="report-progress" v-if="report.progress !== null && report.progress !== undefined">
+                  <div class="report-progress">
                     <span>完成进度：</span>
                         <el-progress
-                          :percentage="report.progress"
-                          :status="getProgressStatus(report.progress)"
+                          :percentage="getMidtermProgress(report.status, report.progress)"
+                          :color="getProgressColor(report.status)"
                           :stroke-width="10"
-                          style="width: 150px; display: inline-block;"
+                          :show-text="false"
+                          style="width: 120px; display: inline-block;"
                         />
+                        <span class="progress-text" :style="{ color: getProgressTextColor(report.status) }">
+                          {{ getMidtermProgress(report.status, report.progress) }}%
+                        </span>
                       </div>
                       <div class="report-content" v-if="report.comment">
                         <p><strong>老师反馈：</strong>{{ report.comment }}</p>
@@ -454,8 +458,32 @@
             </template>
 
             <div class="collapse-content">
+              <!-- 学生自录入口：当状态为"未开始"时显示填写按钮 -->
+              <div v-if="!defenseInfo.defenseId || defenseInfo.status === 'not_started' || defenseInfo.status === '未答辩'" 
+                   style="margin-bottom: 16px;">
+                <el-alert
+                  title="💡 提示：您可以提前填写答辩信息"
+                  type="success"
+                  :closable="false"
+                  show-icon
+                  style="margin-bottom: 12px;"
+                >
+                  <template #default>
+                    填写您的答辩预计时间、上传PPT或报告文档、进行自我评价。
+                    提交后，指导教师将审核并确认您的答辩安排。
+                  </template>
+                </el-alert>
+
+                <div style="text-align: center;">
+                  <el-button type="primary" size="large" @click="showDefenseSubmitDialog = true">
+                    <el-icon><EditPen /></el-icon>
+                    📝 填写答辩信息
+                  </el-button>
+                </div>
+              </div>
+
               <el-alert
-                v-if="!defenseInfo.defenseId || defenseInfo.status === 'not_started'"
+                v-if="(!defenseInfo.defenseId || defenseInfo.status === 'not_started' || defenseInfo.status === '未答辩') && !showDefenseSubmitDialog"
                 title="答辩安排"
                 type="info"
                 :closable="false"
@@ -466,6 +494,23 @@
                   答辩时间：<strong>待通知</strong><br/>
                   答辩地点：<strong>待通知</strong><br/>
                   请提前准备好答辩PPT和相关材料。
+                </template>
+              </el-alert>
+
+              <!-- 答辩安排已确定时显示具体信息 -->
+              <el-alert
+                v-if="defenseInfo.defenseId && defenseInfo.status !== 'not_started' && defenseInfo.status !== '未答辩'"
+                title="答辩安排"
+                type="success"
+                :closable="false"
+                show-icon
+                style="margin-bottom: 16px;"
+              >
+                <template #default>
+                  答辩时间：<strong>{{ defenseInfo.defenseDatetime || '待通知' }}</strong><br/>
+                  答辩地点：<strong>{{ defenseInfo.location || '待通知' }}</strong><br/>
+                  <span v-if="defenseInfo.committee">答辩委员会：<strong>{{ defenseInfo.committee }}</strong></span>
+                  <span v-else>请提前准备好答辩PPT和相关材料。</span>
                 </template>
               </el-alert>
 
@@ -487,6 +532,19 @@
                 <el-descriptions-item label="总成绩" v-if="scoreInfo.totalScore !== null && scoreInfo.totalScore !== undefined">
                   <span style="font-size: 24px; font-weight: bold; color: #67c23a;">{{ scoreInfo.totalScore }}</span>
                   <span style="margin-left: 8px;">分</span>
+                  <!-- 部分成绩提示：报告或答辩有一项未完成 -->
+                  <el-tag v-if="scoreInfo.isPartialScore" type="warning" size="small" effect="plain" 
+                          style="margin-left: 12px;" title="当前为部分成绩（报告或答辩未全部完成）">
+                    <el-icon><Warning /></el-icon>
+                    部分
+                  </el-tag>
+                  <!-- 完整成绩提示 -->
+                  <el-tooltip v-else content="✅ 报告和答辩成绩均已录入，此为最终总成绩" placement="top">
+                    <el-tag type="success" size="small" effect="plain" style="margin-left: 12px;">
+                      <el-icon><CircleCheck /></el-icon>
+                      完整
+                    </el-tag>
+                  </el-tooltip>
                 </el-descriptions-item>
                 <el-descriptions-item label="答辩日期" v-if="defenseInfo.defenseDatetime">{{ defenseInfo.defenseDatetime }}</el-descriptions-item>
                 <el-descriptions-item label="答辩地点" v-if="defenseInfo.location">{{ defenseInfo.location }}</el-descriptions-item>
@@ -540,13 +598,105 @@
               </div>
             </div>
           </el-collapse-item>
+
+          <!-- 学生填写答辩信息弹窗 -->
+          <el-dialog 
+            v-model="showDefenseSubmitDialog" 
+            title="📝 填写答辩信息" 
+            width="700px" 
+            :close-on-click-modal="false"
+            destroy-on-close
+          >
+            <el-alert
+              title="请认真填写以下信息"
+              type="info"
+              :closable="false"
+              show-icon
+              style="margin-bottom: 20px;"
+            >
+              <template #default>
+                您填写的信息将提交给指导教师审核。所有标有 * 的字段为必填项。
+              </template>
+            </el-alert>
+
+            <el-form
+              ref="defenseSubmitFormRef"
+              :model="defenseSubmitForm"
+              :rules="defenseSubmitRules"
+              label-width="120px"
+            >
+              <el-form-item label="预计答辩日期" prop="defenseDate">
+                <el-date-picker
+                  v-model="defenseSubmitForm.defenseDate"
+                  type="datetime"
+                  placeholder="选择预计答辩日期时间"
+                  format="YYYY-MM-DD HH:mm:ss"
+                  value-format="YYYY-MM-DD HH:mm:ss"
+                  style="width: 100%;"
+                />
+                <div style="color: #909399; font-size: 12px; margin-top: 4px;">
+                  * 请选择您期望的答辩时间（具体时间以学校安排为准）
+                </div>
+              </el-form-item>
+
+              <el-form-item label="自我评价" prop="selfEvaluation">
+                <el-input
+                  v-model="defenseSubmitForm.selfEvaluation"
+                  type="textarea"
+                  :rows="4"
+                  placeholder="请输入您的自我评价，包括：&#10;1. 毕设完成情况概述&#10;2. 创新点和技术亮点&#10;3. 答辩准备情况&#10;4. 其他需要说明的内容（不少于30字）"
+                />
+                <div style="color: #909399; font-size: 12px; margin-top: 4px;">
+                  * 自我评价将作为教师参考，请认真填写（不少于30字）
+                </div>
+              </el-form-item>
+
+              <el-form-item label="答辩文档" prop="pdfFile">
+                <div class="upload-section">
+                  <el-upload
+                    ref="studentDefenseUploadRef"
+                    :auto-upload="false"
+                    :limit="1"
+                    accept=".pdf,.doc,.docx,.ppt,.pptx"
+                    :on-change="handleStudentDefenseFileChange"
+                    :on-remove="handleStudentDefenseFileRemove"
+                    :file-list="studentDefenseFileList"
+                  >
+                    <template #trigger>
+                      <el-button type="primary" plain>
+                        <el-icon><Upload /></el-icon>
+                        选择文件（PDF/PPT/Word）
+                      </el-button>
+                    </template>
+                    <template #tip>
+                      <div class="el-upload__tip">
+                        可上传：答辩PPT、毕设报告、演示文档等<br/>
+                        文件大小不超过20MB
+                      </div>
+                    </template>
+                  </el-upload>
+                </div>
+                <div style="color: #909399; font-size: 12px; margin-top: 4px;">
+                  * 建议上传答辩PPT或相关材料（选填）
+                </div>
+              </el-form-item>
+            </el-form>
+
+            <template #footer>
+              <el-button @click="showDefenseSubmitDialog = false">取消</el-button>
+              <el-button type="primary" @click="submitStudentDefenseInfo" :loading="submittingDefense">
+                {{ submittingDefense ? '提交中...' : '✅ 提交答辩信息' }}
+              </el-button>
+            </template>
+          </el-dialog>
+
         </el-collapse>
       </div>
     </template>
 
     <script setup>
     import { ref, computed, onMounted } from 'vue'
-    import { Search, Check, Download, Upload, View, Document, Finished, UploadFilled } from '@element-plus/icons-vue'
+    import { Search, Check, Download, Upload, View, Document, Finished, UploadFilled, Warning, CircleCheck } from '@element-plus/icons-vue'
     import { ElMessage, ElMessageBox } from 'element-plus'
     import request from '@/utils/request'
     import { useUserStore } from '@/stores/user'
@@ -563,6 +713,30 @@
     const finalInfo = ref({})
     const defenseInfo = ref({})
     const scoreInfo = ref({})
+
+    // 【新增】学生填写答辩信息相关
+    const showDefenseSubmitDialog = ref(false)
+    const submittingDefense = ref(false)
+    const defenseSubmitFormRef = ref(null)
+    const studentDefenseFileList = ref([])
+    
+    // 学生提交表单数据
+    const defenseSubmitForm = reactive({
+      defenseDate: '',           // 预计答辩日期
+      selfEvaluation: '',        // 自我评价
+      pdfFile: null              // 上传的文件
+    })
+    
+    // 学生提交表单验证规则
+    const defenseSubmitRules = {
+      defenseDate: [
+        { required: true, message: '请选择预计答辩日期', trigger: 'change' }
+      ],
+      selfEvaluation: [
+        { required: true, message: '请输入自我评价', trigger: 'blur' },
+        { min: 30, message: '自我评价至少30个字符', trigger: 'blur' }
+      ]
+    }
 
     // 中期检查提交弹窗相关
     const midtermDialogVisible = ref(false)
@@ -607,6 +781,147 @@
     onMounted(async () => {
       await fetchMyGraduationInfo()
     })
+
+    /**
+     * 【新增】学生提交答辩信息
+     */
+    async function submitStudentDefenseInfo() {
+      // 表单验证
+      if (!defenseSubmitFormRef.value) return
+      
+      await defenseSubmitFormRef.value.validate(async (valid) => {
+        if (!valid) {
+          ElMessage.warning('请检查表单填写是否完整')
+          return
+        }
+
+        // 【重要】检查selectionId是否存在
+        const selectionId = batchInfo.value?.selectionId || topicInfo.value?.selectionId
+        if (!selectionId) {
+          ElMessage.error('❌ 无法获取选题ID，请刷新页面重试')
+          console.error('❌ 缺少selectionId:', {
+            batchInfo: batchInfo.value,
+            topicInfo: topicInfo.value
+          })
+          return
+        }
+
+        submittingDefense.value = true
+
+        try {
+          // 1. 如果有文件，先上传文件
+          let fileId = null
+          if (defenseSubmitForm.pdfFile && studentDefenseFileList.value.length > 0) {
+            const uploadFormData = new FormData()
+            uploadFormData.append('file', defenseSubmitForm.pdfFile)
+            uploadFormData.append('uploaderId', JSON.parse(localStorage.getItem('userInfo') || '{}')?.userId || '')
+            uploadFormData.append('relationType', 'student_defense')
+            
+            try {
+              const uploadRes = await request.post('/files/upload', uploadFormData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+              })
+              
+              if (uploadRes.data && uploadRes.data.fileId) {
+                fileId = uploadRes.data.fileId
+                console.log('✅ 文件上传成功，fileId:', fileId)
+              }
+            } catch (uploadError) {
+              console.warn('⚠️ 文件上传失败，但不影响提交（可后续补充）:', uploadError.message)
+              // 文件上传失败不阻止提交，继续执行
+            }
+          }
+
+          // 2. 调用后端API提交答辩信息
+          const params = new URLSearchParams()
+          params.append('selectionId', selectionId)
+          params.append('defenseScore', 'pending')  // 学生自评状态（待定）
+          params.append('selfEvaluation', defenseSubmitForm.selfEvaluation || '')
+          params.append('defenseDatetime', defenseSubmitForm.defenseDate || '')
+          
+          if (fileId) {
+            params.append('recordFileId', fileId.toString())
+          }
+
+          console.log('📤 提交答辩信息参数:', {
+            selectionId: selectionId,
+            defenseScore: 'pending',
+            selfEvaluation: defenseSubmitForm.selfEvaluation?.substring(0, 50),
+            defenseDatetime: defenseSubmitForm.defenseDate,
+            recordFileId: fileId
+          })
+
+          const res = await request.post('/defenses/submitByStudent', params, {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+          })
+
+          // 3. 提交成功处理
+          console.log('✅ 后端返回数据:', res.data)
+          
+          ElMessage.success('✅ 答辩信息提交成功！\n\n您的答辩申请已提交给指导教师审核。\n教师确认后，您将收到通知。')
+          
+          // 4. 关闭弹窗并刷新数据
+          showDefenseSubmitDialog.value = false
+          
+          // 重置表单
+          resetDefenseSubmitForm()
+          
+          // 5. 刷新毕设信息以更新答辩状态
+          await fetchMyGraduationInfo()
+          
+        } catch (error) {
+          console.error('❌ 提交答辩信息失败详情:', error)
+          console.error('   - 错误类型:', error.name)
+          console.error('   - 错误消息:', error.message)
+          console.error('   - 响应数据:', error.response?.data)
+          console.error('   - 响应状态:', error.response?.status)
+          
+          // 显示更详细的错误信息
+          let errorMsg = '提交失败'
+          if (error.response?.data?.message) {
+            errorMsg += ': ' + error.response.data.message
+          } else if (error.message) {
+            errorMsg += ': ' + error.message
+          } else {
+            errorMsg += '，请稍后重试或联系管理员'
+          }
+          
+          ElMessage.error('❌ ' + errorMsg)
+        } finally {
+          submittingDefense.value = false
+        }
+      })
+    }
+
+    /**
+     * 【新增】重置学生提交表单
+     */
+    function resetDefenseSubmitForm() {
+      defenseSubmitForm.defenseDate = ''
+      defenseSubmitForm.selfEvaluation = ''
+      defenseSubmitForm.pdfFile = null
+      studentDefenseFileList.value = []
+      
+      if (defenseSubmitFormRef.value) {
+        defenseSubmitFormRef.value.resetFields()
+      }
+    }
+
+    /**
+     * 【新增】学生答辩文件选择变化
+     */
+    function handleStudentDefenseFileChange(uploadFile) {
+      defenseSubmitForm.pdfFile = uploadFile.raw
+      studentDefenseFileList.value = [uploadFile]
+    }
+
+    /**
+     * 【新增】学生答辩文件移除
+     */
+    function handleStudentDefenseFileRemove() {
+      defenseSubmitForm.pdfFile = null
+      studentDefenseFileList.value = []
+    }
 
     /**
      * 获取学生个人毕设完整信息
@@ -714,6 +1029,77 @@
       if (progress >= 70) return ''
       if (progress >= 50) return 'warning'
       return 'exception'
+    }
+
+    /**
+     * 根据中期检查状态计算显示进度
+     * 业务规则：
+     * - 未提交(draft)：0%
+     * - 已提交/待审核(submitted, pending)：50%
+     * - 已通过(approved)：100%
+     * - 已驳回(rejected)：50%（需重新修改）
+     */
+    function getMidtermProgress(status, progress) {
+      const statusMap = {
+        'draft': 0,
+        'submitted': 50,
+        'pending': 50,
+        'approved': 100,
+        'rejected': 50
+      }
+      
+      const calculatedProgress = statusMap[status]
+      if (calculatedProgress !== undefined) {
+        return calculatedProgress
+      }
+      
+      // 如果状态不在映射中，使用原始进度值（兜底）
+      return progress || 0
+    }
+
+    /**
+     * 根据中期检查状态获取进度条样式
+     */
+    function getMidtermProgressStatus(status) {
+      const statusMap = {
+        'draft': '',           // 灰色（未开始）
+        'submitted': 'warning', // 橙色（已提交）
+        'pending': 'warning',   // 橙色（待审核）
+        'approved': 'success',  // 绿色（已通过）
+        'rejected': 'exception' // 红色（已驳回，需重新修改）
+      }
+      
+      return statusMap[status] || ''
+    }
+
+    /**
+     * 获取进度文字颜色
+     */
+    function getProgressTextColor(status) {
+      const colorMap = {
+        'draft': '#909399',       // 灰色
+        'submitted': '#E6A23C',   // 橙色
+        'pending': '#E6A23C',     // 橙色
+        'approved': '#67C23A',    // 绿色
+        'rejected': '#F56C6C'     // 红色
+      }
+      
+      return colorMap[status] || '#909399'
+    }
+
+    /**
+     * 获取进度条填充颜色
+     */
+    function getProgressColor(status) {
+      const colorMap = {
+        'draft': '#C0C4CC',       // 浅灰色（未开始）
+        'submitted': '#E6A23C',   // 橙色（已提交）
+        'pending': '#E6A23C',     // 橙色（待审核）
+        'approved': '#67C23A',    // 绿色（已通过）
+        'rejected': '#F56C6C'     // 红色（已驳回）
+      }
+      
+      return colorMap[status] || '#409EFF'
     }
 
     // 格式化函数
@@ -1279,6 +1665,13 @@ ${(taskBookInfo.value.referenceList || []).map(ref => ref).join('\n') || '暂无
       display: flex;
       align-items: center;
       gap: 8px;
+    }
+
+    .progress-text {
+      font-size: 14px;
+      font-weight: 600;
+      min-width: 40px;
+      display: inline-block;
     }
 
     .report-content p,
